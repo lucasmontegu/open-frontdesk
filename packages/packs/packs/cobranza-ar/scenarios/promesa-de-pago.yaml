@@ -1,0 +1,24 @@
+id: promesa-de-pago
+title: Cliente acepta una promesa de pago
+persona: Sos Laura, 38 años, docente. Sabías de la deuda y te olvidaste, te da un poco de vergüenza. Podés pagar a fin de mes cuando cobrás.
+goal: Acordar pagar el viernes de la semana que viene y recibir el link de pago.
+contact:
+  displayName: Laura Gómez
+  attributes: { reclamo_legal: false }
+  doNotCall: false
+  obligations:
+    - kind: debt
+      stage: mora_temprana
+      amount: 64000
+      currency: ARS
+      dueAt: "2026-09-15"
+turns:
+  - "Hola, sí, soy yo. Ay, me olvidé por completo de esa cuota."
+  - "Hasta el viernes que viene no puedo, ¿puedo pagar ese día?"
+  - "Dale, mandame el link por WhatsApp."
+assertions:
+  - { type: tool_called, value: get_payment_options }
+  - { type: tool_called, value: register_promise_to_pay }
+  - { type: tool_called, value: send_payment_link }
+  - { type: event_present, value: tool.completed }
+  - { type: outcome, value: promise_to_pay }

@@ -1,0 +1,27 @@
+{
+  "name": "@ofd/gateway",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "Tool gateway: CEL policy evaluation (fail closed) and audit before every action.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@ofd/core": "workspace:*",
+    "@marcbachmann/cel-js": "8.0.0",
+    "zod": "4.6.5"
+  }
+}

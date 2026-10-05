@@ -1,0 +1,31 @@
+{
+  "name": "@ofd/agent",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "Mastra agent factory, tools wired through the gateway, memory and mission workflow.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@ofd/core": "workspace:*",
+    "@ofd/gateway": "workspace:*",
+    "@mastra/core": "1.74.0",
+    "@mastra/memory": "1.35.0",
+    "@mastra/pg": "1.29.0",
+    "@ai-sdk/openai": "4.0.83",
+    "zod": "4.6.5"
+  }
+}

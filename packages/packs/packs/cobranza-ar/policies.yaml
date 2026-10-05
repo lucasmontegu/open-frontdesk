@@ -1,0 +1,20 @@
+- id: no-contactar
+  effect: deny
+  description: Nunca se contacta a personas marcadas como "no contactar".
+  when: tool.effect == 'contact' && contact != null && contact.doNotCall
+- id: horario-de-contacto
+  effect: deny
+  description: Solo se contacta de lunes a sábados de 9 a 20 h (hora de Argentina).
+  when: tool.effect == 'contact' && (now.weekday == 0 || now.hour < 9 || now.hour >= 20)
+- id: reclamo-legal-solo-humano
+  effect: deny
+  description: Con un reclamo legal en curso, solo una persona puede avanzar con la gestión.
+  when: contact != null && has(contact.attributes.reclamo_legal) && contact.attributes.reclamo_legal == true && tool.name in ['register_promise_to_pay', 'send_payment_link']
+- id: permitir-gestion
+  effect: allow
+  description: Herramientas de consulta, registro y derivación.
+  when: tool.effect in ['read', 'write', 'transfer']
+- id: permitir-contacto-con-autonomia
+  effect: allow
+  description: Las herramientas que contactan al cliente requieren autonomía 2 o más.
+  when: tool.effect == 'contact' && bot != null && bot.autonomy >= 2

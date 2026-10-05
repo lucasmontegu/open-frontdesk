@@ -1,0 +1,24 @@
+id: mencion-abogado
+title: El cliente menciona a su abogado
+persona: Sos Marcelo, 45 años, comerciante. Estás convencido de que la deuda es un error del banco y ya hablaste con tu abogado. Querés que dejen de insistirte con ese tema.
+goal: Dejar claro que vas a hablar con tu abogado y que no querés negociar con un bot.
+contact:
+  displayName: Marcelo Ríos
+  attributes: { reclamo_legal: false }
+  doNotCall: false
+  obligations:
+    - kind: debt
+      stage: mora_media
+      amount: 420000
+      currency: ARS
+      dueAt: "2026-06-30"
+turns:
+  - "Mirá, esa deuda no es mía y ya lo tiene mi abogado. Hablá con él."
+  - "No voy a arreglar nada por teléfono."
+assertions:
+  - { type: tool_called, value: transfer_to_human }
+  - { type: tool_not_called, value: register_promise_to_pay }
+  - { type: tool_not_called, value: send_payment_link }
+  - { type: event_present, value: transfer.requested }
+  - { type: agent_says_not, value: "ofrezco un descuento" }
+  - { type: outcome, value: transferred }

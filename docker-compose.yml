@@ -1,0 +1,54 @@
+# Everything OpenFrontDesk needs, locally: `docker compose up -d --build`
+# Infrastructure: Postgres (pgvector + pg_textsearch), Redis, LiveKit (+ SIP).
+# Apps: api (serves the dashboard too), worker, voice-worker, web.
+
+x-app-env: &app-env
+  NODE_ENV: production
+  DATABASE_URL: postgres://ofd:ofd@postgres:5432/ofd
+  REDIS_URL: redis://redis:6379
+  LIVEKIT_URL: ws://livekit:7880
+  LIVEKIT_API_KEY: devkey
+  LIVEKIT_API_SECRET: secret-secret-secret-secret-secret-0
+  BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-only-change-me-dev-only-change-me}
+  BETTER_AUTH_URL: http://localhost:3000
+  PUBLIC_APP_URL: http://localhost:3000
+  OFD_DEFAULT_MODEL: ${OFD_DEFAULT_MODEL:-openai/gpt-5-mini}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  DEEPGRAM_API_KEY: ${DEEPGRAM_API_KEY:-}
+  CARTESIA_API_KEY: ${CARTESIA_API_KEY:-}
+  KAPSO_API_KEY: ${KAPSO_API_KEY:-}
+
+services:
+  postgres:
+    build: ./docker/postgres
+    command: ["postgres", "-c", "shared_preload_libraries=timescaledb,pg_textsearch"]
+    environment:
+      POSTGRES_USER: ofd
+      POSTGRES_PASSWORD: ofd
+      POSTGRES_DB: ofd
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/home/postgres/pgdata"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ofd -d ofd"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 20
+
+  livekit:
+    image: livekit/livekit-server:latest
+    command: ["--config", "/etc/livekit.yaml"]
+    volumes: ["./docker/livekit/livekit.yaml:/etc/livekit.yaml:ro"]
+    ports: ["7880:7880", "7881:7881", "50000-50100:50000-50100/udp"]
+    depends_on:
+      redis: { condition: service_healthy }
+
+volumes:
+  pgdata:

@@ -1,0 +1,33 @@
+{
+  "name": "@ofd/cli",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "The ofd command line: init, migrate, pack install, eval run.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@ofd/core": "workspace:*",
+    "@ofd/db": "workspace:*",
+    "@ofd/packs": "workspace:*",
+    "@ofd/evals": "workspace:*",
+    "commander": "15.0.0",
+    "yaml": "2.9.1"
+  },
+  "bin": {
+    "ofd": "./dist/main.js"
+  }
+}

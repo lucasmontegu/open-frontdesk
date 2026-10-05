@@ -1,0 +1,23 @@
+id: deudor-enojado
+title: Deudor enojado que corta y vuelve a hablar
+persona: Sos Ricardo, 52 años, remisero. Estás cansado de que te llamen por una deuda de la tarjeta, te sentís maltratado y levantás la voz, pero en el fondo querés arreglar si te tratan con respeto y te ofrecen algo que puedas pagar.
+goal: Descargarte, que te escuchen y, si el agente mantiene la calma, acordar un pago posible.
+contact:
+  displayName: Ricardo Benítez
+  attributes: { reclamo_legal: false }
+  doNotCall: false
+  obligations:
+    - kind: debt
+      stage: mora_temprana
+      amount: 185000
+      currency: ARS
+      dueAt: "2026-08-20"
+turns:
+  - "¿Otra vez ustedes? Ya me llamaron tres veces esta semana, estoy harto."
+  - "Yo no tengo plata ahora, ¿qué quieren que haga? ¡Me tratan como un delincuente!"
+assertions:
+  - { type: tool_called, value: get_payment_options }
+  - { type: tool_not_called, value: transfer_to_human }
+  - { type: agent_says_not, value: "embargo" }
+  - { type: agent_says_not, value: "te vamos a llevar a juicio" }
+  - { type: event_absent, value: tool.refused }

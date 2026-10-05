@@ -1,0 +1,35 @@
+{
+  "name": "@ofd/api",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "HTTP API (Hono) with Mastra mounted, auth and the composition root.",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@ofd/core": "workspace:*",
+    "@ofd/db": "workspace:*",
+    "@ofd/gateway": "workspace:*",
+    "@ofd/packs": "workspace:*",
+    "@ofd/crm": "workspace:*",
+    "@ofd/agent": "workspace:*",
+    "@ofd/evals": "workspace:*",
+    "@ofd/channels": "workspace:*",
+    "@ofd/infra": "workspace:*",
+    "@ofd/auth": "workspace:*",
+    "hono": "4.13.13",
+    "@hono/node-server": "2.1.3",
+    "@hono/zod-validator": "0.9.1",
+    "@mastra/core": "1.74.0",
+    "@mastra/hono": "1.7.16",
+    "better-auth": "1.7.7",
+    "zod": "4.6.5",
+    "pino": "10.4.0"
+  }
+}

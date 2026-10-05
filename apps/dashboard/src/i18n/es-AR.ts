@@ -80,7 +80,8 @@ export const esAR = {
     importFile: "Archivo CSV",
     importText: "Contenido CSV",
     importSubmit: "Importar",
-    importDone: (created: number, updated: number) => `Importación lista: ${created} creados, ${updated} actualizados.`,
+    importDone: (created: number, updated: number) =>
+      `Importación lista: ${created} creados, ${updated} actualizados.`,
     importErrors: "Filas con errores",
     doNotCall: "No llamar",
     phone: "Teléfono",
@@ -101,7 +102,10 @@ export const esAR = {
     amount: "Monto",
     dueAt: "Vence",
     kind: "Tipo",
-    kinds: { debt: "Deuda", opportunity: "Oportunidad", appointment: "Turno" } as Record<string, string>,
+    kinds: { debt: "Deuda", opportunity: "Oportunidad", appointment: "Turno" } as Record<
+      string,
+      string
+    >,
   },
   portfolios: {
     title: "Carteras",
@@ -156,7 +160,8 @@ export const esAR = {
   missions: {
     title: "Misiones",
     prompt: "¿Qué querés que haga tu front desk?",
-    placeholder: "Por ejemplo: contactá a los pacientes de mañana y ofrecé un turno nuevo si no pueden venir.",
+    placeholder:
+      "Por ejemplo: contactá a los pacientes de mañana y ofrecé un turno nuevo si no pueden venir.",
     submit: "Crear misión",
     bot: "Bot",
     noBots: "Primero publicá un bot para poder crear misiones.",
@@ -168,7 +173,9 @@ export const esAR = {
     estimate: "Estimado",
     strategy: "Estrategia de canal",
     strategyText: (first: string, fallback: number | null) =>
-      fallback === null ? `Primero ${first}, sin reintento por otro canal.` : `Primero ${first}; si no responden en ${fallback} min, por el otro canal.`,
+      fallback === null
+        ? `Primero ${first}, sin reintento por otro canal.`
+        : `Primero ${first}; si no responden en ${fallback} min, por el otro canal.`,
     approve: "Aprobar",
     approving: "Aprobando...",
     awaitingHint: "Revisá el plan. Nada se envía hasta que lo apruebes.",
@@ -212,7 +219,10 @@ export const esAR = {
     refused: "Rechazada",
     refusedBy: (rule: string) => `Regla: ${rule}`,
     onlyRefused: "Solo acciones rechazadas",
-    actors: { user: "Persona", bot: "Bot", system: "Sistema", customer: "Cliente" } as Record<string, string>,
+    actors: { user: "Persona", bot: "Bot", system: "Sistema", customer: "Cliente" } as Record<
+      string,
+      string
+    >,
   },
 } as const;
 

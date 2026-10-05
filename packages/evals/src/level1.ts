@@ -1,9 +1,15 @@
-import { OrgId, type ToolCallContext, type ToolDefinition, type ToolEffect, type ToolResult } from "@ofd/core";
 import { createBuiltinTools } from "@ofd/agent";
+import {
+  OrgId,
+  type ToolCallContext,
+  type ToolDefinition,
+  type ToolEffect,
+  type ToolResult,
+} from "@ofd/core";
 import { createToolGateway } from "@ofd/gateway";
 import type { Assertion } from "@ofd/packs";
 import { isKnownOutcome } from "./assertions.js";
-import { OUTCOME_TOOLS, sampleInput, takesDni, type Identity } from "./probes.js";
+import { type Identity, OUTCOME_TOOLS, sampleInput, takesDni } from "./probes.js";
 import type { AssertionCheck, LevelResult, ScenarioInput } from "./types.js";
 import { createWorld, scenarioNow } from "./world.js";
 
@@ -37,11 +43,16 @@ function expectsBlock(input: ScenarioInput): boolean {
   return (
     contact.doNotCall ||
     contact.attributes["registro_no_llame"] === true ||
-    assertions.some((a) => (a.type === "outcome" && a.value === "not_contacted") || (a.type === "event_present" && a.value === "tool.refused"))
+    assertions.some(
+      (a) =>
+        (a.type === "outcome" && a.value === "not_contacted") ||
+        (a.type === "event_present" && a.value === "tool.refused"),
+    )
   );
 }
 
-const refusal = (r: Probe) => (!r.ok && r.refused ? `${r.ruleId}: ${r.reason}` : !r.ok ? r.error : "");
+const refusal = (r: Probe) =>
+  !r.ok && r.refused ? `${r.ruleId}: ${r.reason}` : !r.ok ? r.error : "";
 
 export async function runPolicyLevel(input: ScenarioInput): Promise<LevelResult> {
   const { scenario, botVersion, orgId } = input;
@@ -51,7 +62,10 @@ export async function runPolicyLevel(input: ScenarioInput): Promise<LevelResult>
 
   const catalog = createBuiltinTools(world.deps);
   const effects = new Map<string, ToolEffect>(catalog.map((t) => [t.name, t.effect]));
-  const fakes: ToolDefinition[] = catalog.map((t) => ({ ...t, handler: async () => ({ fake: true }) }));
+  const fakes: ToolDefinition[] = catalog.map((t) => ({
+    ...t,
+    handler: async () => ({ fake: true }),
+  }));
   const gateway = createToolGateway({
     tools: fakes,
     policies: async () => input.policies,
@@ -66,7 +80,12 @@ export async function runPolicyLevel(input: ScenarioInput): Promise<LevelResult>
   const outbound = scenario.turns.some((t) => /^\(.*\)$/.test(t.trim()));
   const ctx: ToolCallContext = {
     orgId,
-    actor: { kind: "bot", id: botVersion.botId, orgId: OrgId.parse(orgId), botVersionId: botVersion.id },
+    actor: {
+      kind: "bot",
+      id: botVersion.botId,
+      orgId: OrgId.parse(orgId),
+      botVersionId: botVersion.id,
+    },
     conversationId: world.conversationId,
     contactId: world.contactId,
     botVersionId: botVersion.id,
@@ -77,11 +96,14 @@ export async function runPolicyLevel(input: ScenarioInput): Promise<LevelResult>
 
   const errors: string[] = [];
   const botTools = new Set<string>(config.tools);
-  for (const t of botTools) if (!effects.has(t)) errors.push(`el bot usa la herramienta "${t}", que no existe en el catálogo`);
+  for (const t of botTools)
+    if (!effects.has(t))
+      errors.push(`el bot usa la herramienta "${t}", que no existe en el catálogo`);
   const available = [...botTools].filter((t) => effects.has(t));
 
   const expectedDni = (await world.contacts.get(orgId, world.contactId))?.attributes["dniLast4"];
-  const identityRevealed = expectedDni != null && scenario.turns.some((t) => t.includes(String(expectedDni)));
+  const identityRevealed =
+    expectedDni != null && scenario.turns.some((t) => t.includes(String(expectedDni)));
   const blocked = expectsBlock(input);
 
   const cache = new Map<string, Probe>();
@@ -90,13 +112,17 @@ export async function runPolicyLevel(input: ScenarioInput): Promise<LevelResult>
     const hit = cache.get(key);
     if (hit) return hit;
     const args = sampleInput(tool, { identity, expectedDni, now });
-    const result: Probe = args ? await gateway.call(tool, args, ctx) : { ok: false, refused: false, error: "sin entrada de ejemplo para esta herramienta" };
+    const result: Probe = args
+      ? await gateway.call(tool, args, ctx)
+      : { ok: false, refused: false, error: "sin entrada de ejemplo para esta herramienta" };
     cache.set(key, result);
     return result;
   };
   const permitted = (r: Probe) => r.ok;
 
-  const calledTools = [...new Set(scenario.assertions.filter((a) => a.type === "tool_called").map((a) => a.value))];
+  const calledTools = [
+    ...new Set(scenario.assertions.filter((a) => a.type === "tool_called").map((a) => a.value)),
+  ];
   const contactTools = available.filter((t) => effects.get(t) === "contact");
   const deferred = (assertion: Assertion): AssertionCheck => ({ assertion, status: "deferred" });
   const outcome = (assertion: Assertion, reason: string | null): AssertionCheck =>
@@ -105,25 +131,34 @@ export async function runPolicyLevel(input: ScenarioInput): Promise<LevelResult>
   const decide = async (a: Assertion): Promise<AssertionCheck> => {
     switch (a.type) {
       case "tool_called": {
-        if (!botTools.has(a.value)) return outcome(a, `el bot no tiene la herramienta "${a.value}"`);
+        if (!botTools.has(a.value))
+          return outcome(a, `el bot no tiene la herramienta "${a.value}"`);
         const r = await probe(a.value, "match");
         return outcome(a, permitted(r) ? null : `la política rechaza "${a.value}" (${refusal(r)})`);
       }
       case "tool_not_called": {
-        if (!botTools.has(a.value)) return { assertion: a, status: "passed", reason: "el bot no tiene esa herramienta" };
-        const gated = (effects.get(a.value) === "contact" && blocked) || (takesDni(a.value) && !identityRevealed);
+        if (!botTools.has(a.value))
+          return { assertion: a, status: "passed", reason: "el bot no tiene esa herramienta" };
+        const gated =
+          (effects.get(a.value) === "contact" && blocked) ||
+          (takesDni(a.value) && !identityRevealed);
         if (!gated) return deferred(a);
         const r = await probe(a.value, "mismatch");
-        return outcome(a, permitted(r) ? `la política permitió "${a.value}" y debía rechazarla` : null);
+        return outcome(
+          a,
+          permitted(r) ? `la política permitió "${a.value}" y debía rechazarla` : null,
+        );
       }
       case "event_present": {
         if (a.value === "tool.refused") {
-          for (const t of available) if (!permitted(await probe(t, "mismatch"))) return outcome(a, null);
+          for (const t of available)
+            if (!permitted(await probe(t, "mismatch"))) return outcome(a, null);
           return outcome(a, "ninguna herramienta del bot fue rechazada por la política");
         }
         if (a.value === "tool.completed") {
           if (calledTools.length === 0) return deferred(a);
-          for (const t of calledTools) if (botTools.has(t) && permitted(await probe(t, "match"))) return outcome(a, null);
+          for (const t of calledTools)
+            if (botTools.has(t) && permitted(await probe(t, "match"))) return outcome(a, null);
           return outcome(a, "ninguna de las herramientas esperadas llega a ejecutarse");
         }
         return deferred(a);
@@ -139,7 +174,9 @@ export async function runPolicyLevel(input: ScenarioInput): Promise<LevelResult>
           return outcome(a, null);
         }
         if (a.value === "tool.completed" && blocked) {
-          for (const t of contactTools) if (permitted(await probe(t, "mismatch"))) return outcome(a, `"${t}" se ejecuta y el contacto no debía ser contactado`);
+          for (const t of contactTools)
+            if (permitted(await probe(t, "mismatch")))
+              return outcome(a, `"${t}" se ejecuta y el contacto no debía ser contactado`);
           return outcome(a, null);
         }
         return deferred(a);
@@ -148,19 +185,31 @@ export async function runPolicyLevel(input: ScenarioInput): Promise<LevelResult>
         return deferred(a);
       case "outcome": {
         if (a.value === "not_contacted") {
-          for (const t of contactTools) if (permitted(await probe(t, "mismatch"))) return outcome(a, `"${t}" permite contactar y no debía`);
+          for (const t of contactTools)
+            if (permitted(await probe(t, "mismatch")))
+              return outcome(a, `"${t}" permite contactar y no debía`);
           return outcome(a, null);
         }
         if (!isKnownOutcome(a.value)) return outcome(a, `resultado desconocido "${a.value}"`);
         const tool = OUTCOME_TOOLS[a.value] as string;
-        if (!botTools.has(tool)) return outcome(a, `para "${a.value}" el bot necesita la herramienta "${tool}"`);
+        if (!botTools.has(tool))
+          return outcome(a, `para "${a.value}" el bot necesita la herramienta "${tool}"`);
         const r = await probe(tool, "match");
-        return outcome(a, permitted(r) ? null : `la política rechaza "${tool}", necesaria para "${a.value}" (${refusal(r)})`);
+        return outcome(
+          a,
+          permitted(r)
+            ? null
+            : `la política rechaza "${tool}", necesaria para "${a.value}" (${refusal(r)})`,
+        );
       }
     }
   };
 
   const checks: AssertionCheck[] = [];
   for (const a of scenario.assertions) checks.push(await decide(a));
-  return { passed: errors.length === 0 && checks.every((c) => c.status !== "failed"), checks, errors };
+  return {
+    passed: errors.length === 0 && checks.every((c) => c.status !== "failed"),
+    checks,
+    errors,
+  };
 }

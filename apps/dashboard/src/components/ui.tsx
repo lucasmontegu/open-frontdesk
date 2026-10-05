@@ -1,4 +1,13 @@
-import { type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes, useEffect, useId, useRef } from "react";
+import {
+  type ButtonHTMLAttributes,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
+  useEffect,
+  useId,
+  useRef,
+} from "react";
 import { t } from "../i18n";
 
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
@@ -32,7 +41,17 @@ export function Button({
 const fieldCls =
   "w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-fg placeholder:text-muted";
 
-function Field({ label, hint, id, children }: { label: string; hint?: string; id: string; children: ReactNode }) {
+function Field({
+  label,
+  hint,
+  id,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  id: string;
+  children: ReactNode;
+}) {
   return (
     <div className="space-y-1">
       <label htmlFor={id} className="block text-sm font-medium">
@@ -44,7 +63,12 @@ function Field({ label, hint, id, children }: { label: string; hint?: string; id
   );
 }
 
-export function Input({ label, hint, className, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string }) {
+export function Input({
+  label,
+  hint,
+  className,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string }) {
   const id = useId();
   return (
     <Field label={label} hint={hint} id={id}>
@@ -53,7 +77,12 @@ export function Input({ label, hint, className, ...props }: InputHTMLAttributes<
   );
 }
 
-export function Textarea({ label, hint, className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string; hint?: string }) {
+export function Textarea({
+  label,
+  hint,
+  className,
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string; hint?: string }) {
   const id = useId();
   return (
     <Field label={label} hint={hint} id={id}>
@@ -62,7 +91,13 @@ export function Textarea({ label, hint, className, ...props }: TextareaHTMLAttri
   );
 }
 
-export function Select({ label, hint, className, children, ...props }: SelectHTMLAttributes<HTMLSelectElement> & { label: string; hint?: string }) {
+export function Select({
+  label,
+  hint,
+  className,
+  children,
+  ...props
+}: SelectHTMLAttributes<HTMLSelectElement> & { label: string; hint?: string }) {
   const id = useId();
   return (
     <Field label={label} hint={hint} id={id}>
@@ -73,7 +108,17 @@ export function Select({ label, hint, className, children, ...props }: SelectHTM
   );
 }
 
-export function Card({ title, actions, children, className }: { title?: string; actions?: ReactNode; children: ReactNode; className?: string }) {
+export function Card({
+  title,
+  actions,
+  children,
+  className,
+}: {
+  title?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     <section className={cx("rounded-lg border border-line bg-surface", className)}>
       {(title || actions) && (
@@ -97,7 +142,16 @@ const tones: Record<Tone, string> = {
 };
 
 export function Badge({ tone = "neutral", children }: { tone?: Tone; children: ReactNode }) {
-  return <span className={cx("inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium", tones[tone])}>{children}</span>;
+  return (
+    <span
+      className={cx(
+        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+        tones[tone],
+      )}
+    >
+      {children}
+    </span>
+  );
 }
 
 /** Scrolls horizontally on narrow screens instead of breaking the page. */
@@ -112,7 +166,10 @@ export function Table({ children, caption }: { children: ReactNode; caption?: st
   );
 }
 export const Th = ({ children }: { children?: ReactNode }) => (
-  <th scope="col" className="border-b border-line px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted">
+  <th
+    scope="col"
+    className="border-b border-line px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted"
+  >
     {children}
   </th>
 );
@@ -120,7 +177,17 @@ export const Td = ({ children, className }: { children?: ReactNode; className?: 
   <td className={cx("border-b border-line px-3 py-2 align-top", className)}>{children}</td>
 );
 
-export function Dialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
+export function Dialog({
+  open,
+  onClose,
+  title,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: ReactNode;
+}) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   useEffect(() => {
@@ -153,7 +220,15 @@ export function Dialog({ open, onClose, title, children }: { open: boolean; onCl
   );
 }
 
-export function EmptyState({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
+export function EmptyState({
+  title,
+  hint,
+  action,
+}: {
+  title: string;
+  hint?: string;
+  action?: ReactNode;
+}) {
   return (
     <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
       <p className="font-medium">{title}</p>
@@ -163,7 +238,15 @@ export function EmptyState({ title, hint, action }: { title: string; hint?: stri
   );
 }
 
-export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: ReactNode }) {
+export function PageHeader({
+  title,
+  subtitle,
+  actions,
+}: {
+  title: string;
+  subtitle?: string;
+  actions?: ReactNode;
+}) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
       <div>
@@ -178,7 +261,10 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
 export function ErrorNote({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   const message = error instanceof Error ? error.message : t.errors.unknown;
   return (
-    <div role="alert" className="flex flex-wrap items-center gap-3 rounded-md bg-danger-bg px-3 py-2 text-sm text-danger">
+    <div
+      role="alert"
+      className="flex flex-wrap items-center gap-3 rounded-md bg-danger-bg px-3 py-2 text-sm text-danger"
+    >
       <span>{message}</span>
       {onRetry && (
         <Button variant="secondary" onClick={onRetry}>

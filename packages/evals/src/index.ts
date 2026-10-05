@@ -1,7 +1,6 @@
-export { runReleaseGate, runScenario, invalidPolicyRules } from "./gate.js";
+export { invalidPolicyRules, runReleaseGate, runScenario } from "./gate.js";
 export { runPolicyLevel } from "./level1.js";
 export { runConversationLevel } from "./level2.js";
-export { createWorld, DEFAULT_NOW } from "./world.js";
 export type {
   AssertionCheck,
   CheckStatus,
@@ -13,3 +12,4 @@ export type {
   ScenarioInput,
   ScenarioResult,
 } from "./types.js";
+export { createWorld, DEFAULT_NOW } from "./world.js";

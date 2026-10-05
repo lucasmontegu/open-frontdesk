@@ -1,3 +1,4 @@
+import { type BuiltinToolDeps, InMemoryCalendar, InMemoryHoldStore } from "@ofd/agent";
 import type {
   Clock,
   Contact,
@@ -14,7 +15,6 @@ import type {
   ObligationRepository,
   Page,
 } from "@ofd/core";
-import { InMemoryCalendar, InMemoryHoldStore, type BuiltinToolDeps } from "@ofd/agent";
 import type { EvalScenario } from "@ofd/packs";
 
 /** Used when a scenario has no `now`: a Tuesday at 11:00 in Argentina, inside every pack's contact hours. */
@@ -22,7 +22,8 @@ export const DEFAULT_NOW = "2026-10-06T11:00:00-03:00";
 
 export function scenarioNow(scenario: EvalScenario): Date {
   const now = new Date(scenario.now ?? DEFAULT_NOW);
-  if (Number.isNaN(now.getTime())) throw new Error(`scenario "${scenario.id}": invalid "now": ${scenario.now}`);
+  if (Number.isNaN(now.getTime()))
+    throw new Error(`scenario "${scenario.id}": invalid "now": ${scenario.now}`);
   return now;
 }
 
@@ -31,7 +32,11 @@ export class InMemoryEventStore implements EventStore {
   constructor(private readonly clock: Clock) {}
 
   async append<T extends EventType>(event: NewEvent<T>): Promise<InteractionEvent<T>> {
-    const stored = { ...event, id: `ev-${this.events.length + 1}`, occurredAt: event.occurredAt ?? this.clock.now() } as InteractionEvent<T>;
+    const stored = {
+      ...event,
+      id: `ev-${this.events.length + 1}`,
+      occurredAt: event.occurredAt ?? this.clock.now(),
+    } as InteractionEvent<T>;
     this.events.push(stored as unknown as InteractionEvent);
     return stored;
   }
@@ -40,7 +45,10 @@ export class InMemoryEventStore implements EventStore {
     return this.events.filter((e) => e.orgId === orgId && e.conversationId === conversationId);
   }
 
-  async list(orgId: string, opts: { limit?: number; types?: EventType[]; contactId?: string } = {}): Promise<Page<InteractionEvent>> {
+  async list(
+    orgId: string,
+    opts: { limit?: number; types?: EventType[]; contactId?: string } = {},
+  ): Promise<Page<InteractionEvent>> {
     const items = this.events
       .filter((e) => e.orgId === orgId)
       .filter((e) => !opts.types || opts.types.includes(e.type))
@@ -74,7 +82,13 @@ class InMemoryContacts implements ContactRepository {
     return c && c.orgId === orgId ? c : null;
   }
   async findByIdentity(orgId: string, identity: { kind: string; value: string }) {
-    return [...this.byId.values()].find((c) => c.orgId === orgId && c.identities.some((i) => i.kind === identity.kind && i.value === identity.value)) ?? null;
+    return (
+      [...this.byId.values()].find(
+        (c) =>
+          c.orgId === orgId &&
+          c.identities.some((i) => i.kind === identity.kind && i.value === identity.value),
+      ) ?? null
+    );
   }
   async update(orgId: string, id: string, patch: Parameters<ContactRepository["update"]>[2]) {
     const current = await this.get(orgId, id);
@@ -91,12 +105,21 @@ class InMemoryContacts implements ContactRepository {
 class InMemoryObligations implements ObligationRepository {
   private readonly byId = new Map<string, Obligation>();
 
-  async upsert(orgId: string, input: Parameters<ObligationRepository["upsert"]>[1]): Promise<Obligation> {
+  async upsert(
+    orgId: string,
+    input: Parameters<ObligationRepository["upsert"]>[1],
+  ): Promise<Obligation> {
     const now = new Date();
     const id = input.id ?? `ob-${this.byId.size + 1}`;
     const previous = this.byId.get(id);
     const { id: _ignored, ...rest } = input;
-    const next: Obligation = { ...rest, id, orgId, createdAt: previous?.createdAt ?? now, updatedAt: now };
+    const next: Obligation = {
+      ...rest,
+      id,
+      orgId,
+      createdAt: previous?.createdAt ?? now,
+      updatedAt: now,
+    };
     this.byId.set(id, next);
     return next;
   }
@@ -157,7 +180,9 @@ export async function createWorld(orgId: string, scenario: EvalScenario): Promis
     const dueAt = o.dueAt ? new Date(o.dueAt) : null;
     let attributes = o.attributes;
     if (o.kind === "appointment" && dueAt && !Number.isNaN(dueAt.getTime())) {
-      const [slot] = calendar.addSlots(orgId, [{ start: dueAt, end: new Date(dueAt.getTime() + 1_800_000) }]);
+      const [slot] = calendar.addSlots(orgId, [
+        { start: dueAt, end: new Date(dueAt.getTime() + 1_800_000) },
+      ]);
       const booking = await calendar.book(orgId, { contactId: contact.id, slotId: slot!.id });
       attributes = { ...attributes, bookingId: booking.id };
     }
@@ -212,7 +237,12 @@ export async function createWorld(orgId: string, scenario: EvalScenario): Promis
     sent,
     async profile() {
       const fresh = (await contacts.get(orgId, contact.id)) ?? contact;
-      return { contact: fresh, obligations: await obligations.listByContact(orgId, contact.id), facts: [], recentSummaries: [] };
+      return {
+        contact: fresh,
+        obligations: await obligations.listByContact(orgId, contact.id),
+        facts: [],
+        recentSummaries: [],
+      };
     },
   };
 }

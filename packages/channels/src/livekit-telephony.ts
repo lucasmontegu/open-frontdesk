@@ -1,5 +1,5 @@
-import { AgentDispatchClient, RoomServiceClient, SipClient } from "livekit-server-sdk";
 import type { TelephonyProvider } from "@ofd/core";
+import { AgentDispatchClient, RoomServiceClient, SipClient } from "livekit-server-sdk";
 
 export const VOICE_AGENT_NAME = "ofd-voice";
 
@@ -40,7 +40,13 @@ export class LiveKitTelephonyProvider implements TelephonyProvider {
     };
   }
 
-  async dial(input: { orgId: string; to: string; botVersionId: string; conversationId: string; context?: Record<string, unknown> }): Promise<{ callId: string }> {
+  async dial(input: {
+    orgId: string;
+    to: string;
+    botVersionId: string;
+    conversationId: string;
+    context?: Record<string, unknown>;
+  }): Promise<{ callId: string }> {
     const room = input.conversationId;
     await this.clients.rooms.createRoom({ name: room, emptyTimeout: 60, departureTimeout: 20 });
 
@@ -50,13 +56,23 @@ export class LiveKitTelephonyProvider implements TelephonyProvider {
       conversationId: input.conversationId,
       context: input.context ?? {},
     };
-    await this.clients.dispatch.createDispatch(room, VOICE_AGENT_NAME, { metadata: JSON.stringify(metadata) });
-
-    const participant = await this.clients.sip.createSipParticipant(this.opts.sipTrunkId, input.to, room, {
-      participantIdentity: `sip-${input.conversationId}`,
-      participantName: input.to,
-      participantAttributes: { "ofd.orgId": input.orgId, "ofd.conversationId": input.conversationId },
+    await this.clients.dispatch.createDispatch(room, VOICE_AGENT_NAME, {
+      metadata: JSON.stringify(metadata),
     });
+
+    const participant = await this.clients.sip.createSipParticipant(
+      this.opts.sipTrunkId,
+      input.to,
+      room,
+      {
+        participantIdentity: `sip-${input.conversationId}`,
+        participantName: input.to,
+        participantAttributes: {
+          "ofd.orgId": input.orgId,
+          "ofd.conversationId": input.conversationId,
+        },
+      },
+    );
     return { callId: participant.sipCallId || participant.participantId };
   }
 }

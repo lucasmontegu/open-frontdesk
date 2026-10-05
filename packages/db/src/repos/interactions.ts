@@ -77,7 +77,9 @@ export class PgEventStore implements EventStore {
     if (cur) {
       const at = new Date(Number(cur[0]));
       const seq = Number(cur[1]);
-      conds.push(or(lt(events.occurredAt, at), and(eq(events.occurredAt, at), lt(events.seq, seq))) as never);
+      conds.push(
+        or(lt(events.occurredAt, at), and(eq(events.occurredAt, at), lt(events.seq, seq))) as never,
+      );
     }
     const rows = await this.db
       .select()
@@ -98,7 +100,13 @@ export class PgConversationRepository implements ConversationRepository {
 
   async start(
     orgId: string,
-    input: { channel: string; contactId: string | null; botVersionId: string; direction: "inbound" | "outbound"; missionId?: string | null },
+    input: {
+      channel: string;
+      contactId: string | null;
+      botVersionId: string;
+      direction: "inbound" | "outbound";
+      missionId?: string | null;
+    },
   ): Promise<{ id: string }> {
     const id = newId("cv");
     await this.db.insert(conversations).values({
@@ -129,8 +137,17 @@ export class PgPolicyRepository implements PolicyRepository {
 
   /** Returns the org's own rules in stored order. Pack rules are merged in by the caller. */
   async rulesFor(orgId: string, _botId: string | null): Promise<PolicyRule[]> {
-    const rows = await this.db.select().from(policies).where(eq(policies.orgId, orgId)).orderBy(asc(policies.position));
-    return rows.map((r) => ({ id: r.ruleId, effect: r.effect, description: r.description, when: r.whenExpr }));
+    const rows = await this.db
+      .select()
+      .from(policies)
+      .where(eq(policies.orgId, orgId))
+      .orderBy(asc(policies.position));
+    return rows.map((r) => ({
+      id: r.ruleId,
+      effect: r.effect,
+      description: r.description,
+      when: r.whenExpr,
+    }));
   }
 
   /** Replaces the org's rule set atomically. */
@@ -158,25 +175,45 @@ const toMission = (r: typeof missions.$inferSelect): Mission => ({ ...r });
 export class PgMissionRepository implements MissionRepository {
   constructor(private readonly db: Db) {}
 
-  async create(orgId: string, input: { botId: string; createdBy: string; instruction: string }): Promise<Mission> {
+  async create(
+    orgId: string,
+    input: { botId: string; createdBy: string; instruction: string },
+  ): Promise<Mission> {
     const rows = await this.db
       .insert(missions)
-      .values({ id: newId("ms"), orgId, botId: input.botId, createdBy: input.createdBy, instruction: input.instruction })
+      .values({
+        id: newId("ms"),
+        orgId,
+        botId: input.botId,
+        createdBy: input.createdBy,
+        instruction: input.instruction,
+      })
       .returning();
     return toMission(rows[0] as typeof missions.$inferSelect);
   }
 
   async get(orgId: string, id: string): Promise<Mission | null> {
-    const rows = await this.db.select().from(missions).where(and(eq(missions.orgId, orgId), eq(missions.id, id)));
+    const rows = await this.db
+      .select()
+      .from(missions)
+      .where(and(eq(missions.orgId, orgId), eq(missions.id, id)));
     return rows[0] ? toMission(rows[0]) : null;
   }
 
   async list(orgId: string): Promise<Mission[]> {
-    const rows = await this.db.select().from(missions).where(eq(missions.orgId, orgId)).orderBy(desc(missions.createdAt));
+    const rows = await this.db
+      .select()
+      .from(missions)
+      .where(eq(missions.orgId, orgId))
+      .orderBy(desc(missions.createdAt));
     return rows.map(toMission);
   }
 
-  async update(orgId: string, id: string, patch: Partial<Pick<Mission, "status" | "plan" | "report">>): Promise<Mission> {
+  async update(
+    orgId: string,
+    id: string,
+    patch: Partial<Pick<Mission, "status" | "plan" | "report">>,
+  ): Promise<Mission> {
     const rows = await this.db
       .update(missions)
       .set({ ...patch, updatedAt: new Date() })

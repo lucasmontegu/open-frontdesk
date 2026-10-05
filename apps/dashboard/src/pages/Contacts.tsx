@@ -2,9 +2,23 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 import { Link, useParams } from "@tanstack/react-router";
 import { type FormEvent, useEffect, useState } from "react";
 import { EventsTable } from "../components/EventsTable";
-import { Badge, Button, Card, Dialog, EmptyState, ErrorNote, Input, Loading, PageHeader, Table, Td, Textarea, Th } from "../components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  Dialog,
+  EmptyState,
+  ErrorNote,
+  Input,
+  Loading,
+  PageHeader,
+  Table,
+  Td,
+  Textarea,
+  Th,
+} from "../components/ui";
 import { t } from "../i18n";
-import { type ContactDto, api } from "../lib/api";
+import { api, type ContactDto } from "../lib/api";
 import { formatArs, formatDate, formatPhone } from "../lib/format";
 
 function useDebounced<T>(value: T, ms: number): T {
@@ -17,7 +31,9 @@ function useDebounced<T>(value: T, ms: number): T {
 }
 
 export function identity(c: ContactDto, kind: "phone" | "whatsapp" | "email"): string | null {
-  const found = c.identities.find((i) => i.kind === kind) ?? (kind === "phone" ? c.identities.find((i) => i.kind === "whatsapp") : undefined);
+  const found =
+    c.identities.find((i) => i.kind === kind) ??
+    (kind === "phone" ? c.identities.find((i) => i.kind === "whatsapp") : undefined);
   return found ? found.value : null;
 }
 
@@ -41,8 +57,20 @@ function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void })
     <Dialog open={open} onClose={onClose} title={t.contacts.importTitle}>
       <form onSubmit={submit} className="space-y-4">
         <p className="text-sm text-muted">{t.contacts.importHelp}</p>
-        <Input label={t.contacts.importFile} type="file" accept=".csv,text/csv" onChange={(e) => onFile(e.target.files?.[0])} />
-        <Textarea label={t.contacts.importText} rows={6} value={csv} onChange={(e) => setCsv(e.target.value)} className="font-mono" required />
+        <Input
+          label={t.contacts.importFile}
+          type="file"
+          accept=".csv,text/csv"
+          onChange={(e) => onFile(e.target.files?.[0])}
+        />
+        <Textarea
+          label={t.contacts.importText}
+          rows={6}
+          value={csv}
+          onChange={(e) => setCsv(e.target.value)}
+          className="font-mono"
+          required
+        />
         {m.error && <ErrorNote error={m.error} />}
         {m.data && (
           <div role="status" className="rounded-md bg-ok-bg px-3 py-2 text-sm text-ok">
@@ -88,16 +116,28 @@ export function ContactsPage() {
 
   return (
     <>
-      <PageHeader title={t.contacts.title} actions={<Button onClick={() => setImporting(true)}>{t.contacts.import}</Button>} />
+      <PageHeader
+        title={t.contacts.title}
+        actions={<Button onClick={() => setImporting(true)}>{t.contacts.import}</Button>}
+      />
       <div className="mb-4 max-w-md">
-        <Input label={t.contacts.searchLabel} type="search" placeholder={t.contacts.searchPlaceholder} value={search} onChange={(e) => setSearch(e.target.value)} />
+        <Input
+          label={t.contacts.searchLabel}
+          type="search"
+          placeholder={t.contacts.searchPlaceholder}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
       {list.error && <ErrorNote error={list.error} onRetry={() => list.refetch()} />}
       <Card>
         {list.isLoading ? (
           <Loading />
         ) : items.length === 0 ? (
-          <EmptyState title={q ? t.contacts.noResults : t.contacts.empty} hint={q ? undefined : t.contacts.emptyHint} />
+          <EmptyState
+            title={q ? t.contacts.noResults : t.contacts.empty}
+            hint={q ? undefined : t.contacts.emptyHint}
+          />
         ) : (
           <Table caption={t.contacts.title}>
             <thead>
@@ -114,7 +154,11 @@ export function ContactsPage() {
                 return (
                   <tr key={c.id}>
                     <Td>
-                      <Link to="/contactos/$contactId" params={{ contactId: c.id }} className="font-medium text-accent underline">
+                      <Link
+                        to="/contactos/$contactId"
+                        params={{ contactId: c.id }}
+                        className="font-medium text-accent underline"
+                      >
                         {c.displayName}
                       </Link>{" "}
                       {c.doNotCall && <Badge tone="danger">{t.contacts.doNotCall}</Badge>}
@@ -136,7 +180,11 @@ export function ContactsPage() {
         )}
         {list.hasNextPage && (
           <div className="mt-4 text-center">
-            <Button variant="secondary" disabled={list.isFetchingNextPage} onClick={() => list.fetchNextPage()}>
+            <Button
+              variant="secondary"
+              disabled={list.isFetchingNextPage}
+              onClick={() => list.fetchNextPage()}
+            >
               {t.common.loadMore}
             </Button>
           </div>
@@ -147,7 +195,13 @@ export function ContactsPage() {
   );
 }
 
-function SourceDialog({ conversationId, onClose }: { conversationId: string | null; onClose: () => void }) {
+function SourceDialog({
+  conversationId,
+  onClose,
+}: {
+  conversationId: string | null;
+  onClose: () => void;
+}) {
   const q = useQuery({
     queryKey: ["conversation-events", conversationId],
     queryFn: () => api.events.forConversation(conversationId as string),
@@ -155,7 +209,13 @@ function SourceDialog({ conversationId, onClose }: { conversationId: string | nu
   });
   return (
     <Dialog open={conversationId !== null} onClose={onClose} title={t.contacts.sourceTitle}>
-      {q.isLoading ? <Loading /> : q.error ? <ErrorNote error={q.error} /> : <EventsTable events={q.data?.items ?? []} showActor={false} />}
+      {q.isLoading ? (
+        <Loading />
+      ) : q.error ? (
+        <ErrorNote error={q.error} />
+      ) : (
+        <EventsTable events={q.data?.items ?? []} showActor={false} />
+      )}
     </Dialog>
   );
 }
@@ -163,15 +223,24 @@ function SourceDialog({ conversationId, onClose }: { conversationId: string | nu
 export function ContactDetailPage() {
   const { contactId } = useParams({ from: "/app/contactos/$contactId" });
   const [source, setSource] = useState<string | null>(null);
-  const profile = useQuery({ queryKey: ["contact", contactId], queryFn: () => api.contacts.get(contactId) });
-  const timeline = useQuery({ queryKey: ["events", "contact", contactId], queryFn: () => api.events.list({ contactId, limit: 50 }) });
+  const profile = useQuery({
+    queryKey: ["contact", contactId],
+    queryFn: () => api.contacts.get(contactId),
+  });
+  const timeline = useQuery({
+    queryKey: ["events", "contact", contactId],
+    queryFn: () => api.events.list({ contactId, limit: 50 }),
+  });
 
   if (profile.isLoading) return <Loading />;
-  if (profile.error || !profile.data) return <ErrorNote error={profile.error} onRetry={() => profile.refetch()} />;
+  if (profile.error || !profile.data)
+    return <ErrorNote error={profile.error} onRetry={() => profile.refetch()} />;
   const { contact, obligations, facts, recentSummaries } = profile.data;
   const phone = identity(contact, "phone");
   // Defensive: if the API ignores the contactId filter, keep only this contact's events.
-  const events = (timeline.data?.items ?? []).filter((e) => e.contactId === null || e.contactId === contactId);
+  const events = (timeline.data?.items ?? []).filter(
+    (e) => e.contactId === null || e.contactId === contactId,
+  );
 
   return (
     <>
@@ -180,8 +249,12 @@ export function ContactDetailPage() {
       </Link>
       <PageHeader
         title={contact.displayName}
-        subtitle={[phone ? formatPhone(phone) : null, identity(contact, "email")].filter(Boolean).join(" · ")}
-        actions={contact.doNotCall ? <Badge tone="danger">{t.contacts.doNotCall}</Badge> : undefined}
+        subtitle={[phone ? formatPhone(phone) : null, identity(contact, "email")]
+          .filter(Boolean)
+          .join(" · ")}
+        actions={
+          contact.doNotCall ? <Badge tone="danger">{t.contacts.doNotCall}</Badge> : undefined
+        }
       />
       <div className="space-y-4">
         <Card title={t.contacts.obligations}>
@@ -204,7 +277,9 @@ export function ContactDetailPage() {
                     <Td>
                       <Badge>{o.stage}</Badge>
                     </Td>
-                    <Td className="whitespace-nowrap">{o.amount === null ? "" : formatArs(o.amount, o.currency)}</Td>
+                    <Td className="whitespace-nowrap">
+                      {o.amount === null ? "" : formatArs(o.amount, o.currency)}
+                    </Td>
                     <Td className="whitespace-nowrap">{o.dueAt ? formatDate(o.dueAt) : ""}</Td>
                   </tr>
                 ))}
@@ -219,14 +294,21 @@ export function ContactDetailPage() {
           ) : (
             <ul className="divide-y divide-line">
               {facts.map((f) => (
-                <li key={f.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                <li
+                  key={f.id}
+                  className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
+                >
                   <span>
                     <span className="font-medium">{f.key}:</span> {f.value}
                   </span>
                   <span className="flex items-center gap-2 text-xs text-muted">
                     {t.contacts.confidence(Math.round(f.confidence * 100))}
                     <span>{formatDate(f.createdAt)}</span>
-                    <Button variant="ghost" className="min-h-8 px-2 text-xs underline" onClick={() => setSource(f.sourceConversationId)}>
+                    <Button
+                      variant="ghost"
+                      className="min-h-8 px-2 text-xs underline"
+                      onClick={() => setSource(f.sourceConversationId)}
+                    >
                       {t.contacts.source}: {t.contacts.viewSource}
                     </Button>
                   </span>
@@ -247,7 +329,13 @@ export function ContactDetailPage() {
         </Card>
 
         <Card title={t.contacts.timeline}>
-          {timeline.isLoading ? <Loading /> : events.length === 0 ? <p className="text-sm text-muted">{t.contacts.noTimeline}</p> : <EventsTable events={events} />}
+          {timeline.isLoading ? (
+            <Loading />
+          ) : events.length === 0 ? (
+            <p className="text-sm text-muted">{t.contacts.noTimeline}</p>
+          ) : (
+            <EventsTable events={events} />
+          )}
         </Card>
       </div>
       <SourceDialog conversationId={source} onClose={() => setSource(null)} />

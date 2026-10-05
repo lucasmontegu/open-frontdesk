@@ -1,5 +1,5 @@
-import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { apiKey } from "@better-auth/api-key";
+import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { organization } from "better-auth/plugins";
 import { Pool } from "pg";
 import { ac, roles } from "./access.js";
@@ -11,7 +11,10 @@ export interface AuthConfig {
   trustedOrigins?: string[];
 }
 
-export function authOptions(config: AuthConfig, pool = new Pool({ connectionString: config.databaseUrl })) {
+export function authOptions(
+  config: AuthConfig,
+  pool = new Pool({ connectionString: config.databaseUrl }),
+) {
   return {
     database: pool,
     secret: config.secret,

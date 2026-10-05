@@ -12,7 +12,11 @@ const listQuery = z.object({
   cursor: z.string().optional(),
 });
 
-const identity = z.object({ kind: IdentityKind, value: z.string().min(1), source: z.string().optional() });
+const identity = z.object({
+  kind: IdentityKind,
+  value: z.string().min(1),
+  source: z.string().optional(),
+});
 const createBody = z.object({
   displayName: z.string().min(1),
   identities: z.array(identity).default([]),
@@ -51,7 +55,8 @@ export function mappingFromHeaders(csv: string): ImportMapping {
   const firstLine = (csv.replace(/^﻿/, "").split(/\r?\n/, 1)[0] ?? "").trim();
   const delimiter = firstLine.includes(";") && !firstLine.includes(",") ? ";" : ",";
   const headers = firstLine.split(delimiter).map((h) => h.trim().replace(/^"|"$/g, ""));
-  const find = (aliases: readonly string[]) => headers.find((h) => aliases.some((a) => norm(a) === norm(h)));
+  const find = (aliases: readonly string[]) =>
+    headers.find((h) => aliases.some((a) => norm(a) === norm(h)));
   const col = (key: keyof typeof DEFAULT_IMPORT_ALIASES) => find(DEFAULT_IMPORT_ALIASES[key]);
   const mapping: ImportMapping = { displayName: col("displayName") ?? "" };
   for (const key of ["phone", "whatsapp", "email", "dni", "cuit", "tags"] as const) {
@@ -74,28 +79,49 @@ export function contactRoutes(container: Container) {
   return new Hono<AppEnv>()
     .get("/", requirePermission("contacts", "read"), validate("query", listQuery), async (c) => {
       const q = c.req.valid("query");
-      const page = await contacts.list(c.get("actor").orgId, { search: q.q, limit: q.limit, cursor: q.cursor });
+      const page = await contacts.list(c.get("actor").orgId, {
+        search: q.q,
+        limit: q.limit,
+        cursor: q.cursor,
+      });
       return c.json(page);
     })
     .post("/", requirePermission("contacts", "create"), validate("json", createBody), async (c) => {
       const input = c.req.valid("json");
-      const contact = await contacts.create(c.get("actor").orgId, { ...input, identities: input.identities as ContactIdentity[] });
+      const contact = await contacts.create(c.get("actor").orgId, {
+        ...input,
+        identities: input.identities as ContactIdentity[],
+      });
       return c.json(contact, 201);
     })
-    .post("/import", requirePermission("contacts", "create"), validate("json", importBody), async (c) => {
-      const { csv } = c.req.valid("json");
-      const result = await importContactsCsv(csv, mappingFromHeaders(csv), { orgId: c.get("actor").orgId, contacts, obligations });
-      return c.json(result);
-    })
+    .post(
+      "/import",
+      requirePermission("contacts", "create"),
+      validate("json", importBody),
+      async (c) => {
+        const { csv } = c.req.valid("json");
+        const result = await importContactsCsv(csv, mappingFromHeaders(csv), {
+          orgId: c.get("actor").orgId,
+          contacts,
+          obligations,
+        });
+        return c.json(result);
+      },
+    )
     .get("/:id", requirePermission("contacts", "read"), async (c) => {
       const profile = await profiles.load(c.get("actor").orgId, c.req.param("id"));
       if (!profile) throw notFound("contact");
       return c.json(profile);
     })
-    .patch("/:id", requirePermission("contacts", "update"), validate("json", patchBody), async (c) => {
-      const orgId = c.get("actor").orgId;
-      if (!(await contacts.get(orgId, c.req.param("id")))) throw notFound("contact");
-      const contact = await contacts.update(orgId, c.req.param("id"), c.req.valid("json"));
-      return c.json(contact);
-    });
+    .patch(
+      "/:id",
+      requirePermission("contacts", "update"),
+      validate("json", patchBody),
+      async (c) => {
+        const orgId = c.get("actor").orgId;
+        if (!(await contacts.get(orgId, c.req.param("id")))) throw notFound("contact");
+        const contact = await contacts.update(orgId, c.req.param("id"), c.req.valid("json"));
+        return c.json(contact);
+      },
+    );
 }

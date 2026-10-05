@@ -1,9 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
-import { Badge, Button, Card, Dialog, EmptyState, ErrorNote, Input, Loading, PageHeader, Table, Td, Th } from "../components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  Dialog,
+  EmptyState,
+  ErrorNote,
+  Input,
+  Loading,
+  PageHeader,
+  Table,
+  Td,
+  Th,
+} from "../components/ui";
 import { t } from "../i18n";
-import { type ContactDto, type ObligationDto, type PortfolioDto, api } from "../lib/api";
+import { api, type ContactDto, type ObligationDto, type PortfolioDto } from "../lib/api";
 import { formatArs, formatDate } from "../lib/format";
 
 const csv = (s: FormDataEntryValue | null) =>
@@ -33,7 +46,8 @@ function CreateDialog({ open, onClose }: { open: boolean; onClose: () => void })
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
-    const num = (k: string) => (String(f.get(k) ?? "").trim() === "" ? undefined : Number(f.get(k)));
+    const num = (k: string) =>
+      String(f.get(k) ?? "").trim() === "" ? undefined : Number(f.get(k));
     const stages = csv(f.get("stages"));
     const tags = csv(f.get("tags"));
     const rule: PortfolioDto["rule"] = {
@@ -42,7 +56,11 @@ function CreateDialog({ open, onClose }: { open: boolean; onClose: () => void })
       ...(stages.length > 0 && { stages }),
       ...(tags.length > 0 && { tags }),
     };
-    m.mutate({ name: String(f.get("name")), owner: String(f.get("owner") ?? "").trim() || null, rule });
+    m.mutate({
+      name: String(f.get("name")),
+      owner: String(f.get("owner") ?? "").trim() || null,
+      rule,
+    });
   };
   return (
     <Dialog open={open} onClose={onClose} title={t.portfolios.create}>
@@ -51,8 +69,22 @@ function CreateDialog({ open, onClose }: { open: boolean; onClose: () => void })
         <Input label={t.portfolios.owner} name="owner" hint={t.common.optional} />
         <fieldset className="space-y-3 rounded-md border border-line p-3">
           <legend className="px-1 text-sm font-medium">{t.portfolios.rule}</legend>
-          <Input label={t.portfolios.minDaysOverdue} name="days" type="number" min={0} step={1} inputMode="numeric" />
-          <Input label={t.portfolios.minAmount} name="amount" type="number" min={0} step="0.01" inputMode="decimal" />
+          <Input
+            label={t.portfolios.minDaysOverdue}
+            name="days"
+            type="number"
+            min={0}
+            step={1}
+            inputMode="numeric"
+          />
+          <Input
+            label={t.portfolios.minAmount}
+            name="amount"
+            type="number"
+            min={0}
+            step="0.01"
+            inputMode="decimal"
+          />
           <Input label={t.portfolios.stages} name="stages" />
           <Input label={t.portfolios.tags} name="tags" />
         </fieldset>
@@ -76,7 +108,10 @@ export function PortfoliosPage() {
   const items = q.data?.items ?? [];
   return (
     <>
-      <PageHeader title={t.portfolios.title} actions={<Button onClick={() => setCreating(true)}>{t.portfolios.create}</Button>} />
+      <PageHeader
+        title={t.portfolios.title}
+        actions={<Button onClick={() => setCreating(true)}>{t.portfolios.create}</Button>}
+      />
       {q.error && <ErrorNote error={q.error} onRetry={() => q.refetch()} />}
       <Card>
         {q.isLoading ? (
@@ -97,7 +132,11 @@ export function PortfoliosPage() {
               {items.map((p) => (
                 <tr key={p.id}>
                   <Td>
-                    <Link to="/carteras/$portfolioId" params={{ portfolioId: p.id }} className="font-medium text-accent underline">
+                    <Link
+                      to="/carteras/$portfolioId"
+                      params={{ portfolioId: p.id }}
+                      className="font-medium text-accent underline"
+                    >
                       {p.name}
                     </Link>
                   </Td>
@@ -122,15 +161,26 @@ interface MemberRow {
 
 /** Members may arrive as `{contact, obligations}` rows, `{contact, obligation}` rows or bare contacts. */
 export function toMemberRow(raw: unknown): MemberRow {
-  const r = raw as { contact?: ContactDto; obligations?: ObligationDto[]; obligation?: ObligationDto } & Partial<ContactDto>;
-  if (r.contact) return { contact: r.contact, obligations: r.obligations ?? (r.obligation ? [r.obligation] : []) };
+  const r = raw as {
+    contact?: ContactDto;
+    obligations?: ObligationDto[];
+    obligation?: ObligationDto;
+  } & Partial<ContactDto>;
+  if (r.contact)
+    return {
+      contact: r.contact,
+      obligations: r.obligations ?? (r.obligation ? [r.obligation] : []),
+    };
   return { contact: r.displayName ? (r as ContactDto) : null, obligations: [] };
 }
 
 export function PortfolioDetailPage() {
   const { portfolioId } = useParams({ from: "/app/carteras/$portfolioId" });
   const list = useQuery({ queryKey: ["portfolios"], queryFn: api.portfolios.list });
-  const members = useQuery({ queryKey: ["portfolio-members", portfolioId], queryFn: () => api.portfolios.members(portfolioId) });
+  const members = useQuery({
+    queryKey: ["portfolio-members", portfolioId],
+    queryFn: () => api.portfolios.members(portfolioId),
+  });
   const portfolio = list.data?.items.find((p) => p.id === portfolioId);
   const rows = (members.data?.items ?? []).map(toMemberRow).filter((r) => r.contact);
 
@@ -139,7 +189,10 @@ export function PortfolioDetailPage() {
       <Link to="/carteras" className="mb-2 inline-block text-sm text-accent underline">
         {t.common.back}
       </Link>
-      <PageHeader title={portfolio?.name ?? t.portfolios.title} subtitle={portfolio ? describeRule(portfolio.rule) : undefined} />
+      <PageHeader
+        title={portfolio?.name ?? t.portfolios.title}
+        subtitle={portfolio ? describeRule(portfolio.rule) : undefined}
+      />
       <Card title={t.portfolios.members}>
         {members.isLoading ? (
           <Loading />
@@ -160,7 +213,11 @@ export function PortfolioDetailPage() {
                 <tr key={r.contact?.id}>
                   <Td>
                     {r.contact && (
-                      <Link to="/contactos/$contactId" params={{ contactId: r.contact.id }} className="text-accent underline">
+                      <Link
+                        to="/contactos/$contactId"
+                        params={{ contactId: r.contact.id }}
+                        className="text-accent underline"
+                      >
                         {r.contact.displayName}
                       </Link>
                     )}

@@ -19,7 +19,12 @@ function toDate(value: string | Date): Date | null {
 export function formatDate(value: string | Date): string {
   const d = toDate(value);
   if (!d) return "";
-  return new Intl.DateTimeFormat("es-AR", { timeZone: TZ, day: "2-digit", month: "2-digit", year: "numeric" }).format(d);
+  return new Intl.DateTimeFormat("es-AR", {
+    timeZone: TZ,
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(d);
 }
 
 /** dd/mm/yyyy HH:mm (24h) in Buenos Aires time. */

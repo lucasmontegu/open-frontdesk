@@ -1,6 +1,13 @@
 import { Agent } from "@mastra/core/agent";
-import { OrgId, type EventType, type InteractionEvent, type ToolCallContext, type ToolEffect, type ToolGateway } from "@ofd/core";
 import { createBuiltinTools, createFrontDeskAgent, type GatewayToolContext } from "@ofd/agent";
+import {
+  type EventType,
+  type InteractionEvent,
+  OrgId,
+  type ToolCallContext,
+  type ToolEffect,
+  type ToolGateway,
+} from "@ofd/core";
 import { createToolGateway } from "@ofd/gateway";
 import { checkAssertionOverEvents } from "./assertions.js";
 import type { AssertionCheck, ConversationOptions, LevelResult, ScenarioInput } from "./types.js";
@@ -23,7 +30,12 @@ const customerInstructions = (persona: string, goal: string) =>
   ].join("\n");
 
 /** The simulated customer is a plain Mastra Agent: no tools, no guards. */
-function createCustomerAgent(_frontDesk: FrontDeskAgent, model: ConversationOptions["model"], persona: string, goal: string): FrontDeskAgent {
+function createCustomerAgent(
+  _frontDesk: FrontDeskAgent,
+  model: ConversationOptions["model"],
+  persona: string,
+  goal: string,
+): FrontDeskAgent {
   return new Agent({
     id: "simulated-customer",
     name: "Cliente simulado",
@@ -34,8 +46,13 @@ function createCustomerAgent(_frontDesk: FrontDeskAgent, model: ConversationOpti
 
 /** The customer sees the conversation with the roles swapped. */
 function customerView(history: Msg[]): Msg[] {
-  const flipped = history.map<Msg>((m) => ({ role: m.role === "user" ? "assistant" : "user", content: m.content.replace(/^\[Sistema\] /, "") }));
-  return flipped[0]?.role === "assistant" ? [{ role: "user", content: "Empezá la conversación." }, ...flipped] : flipped;
+  const flipped = history.map<Msg>((m) => ({
+    role: m.role === "user" ? "assistant" : "user",
+    content: m.content.replace(/^\[Sistema\] /, ""),
+  }));
+  return flipped[0]?.role === "assistant"
+    ? [{ role: "user", content: "Empezá la conversación." }, ...flipped]
+    : flipped;
 }
 
 export async function runConversationLevel(input: ScenarioInput): Promise<LevelResult> {
@@ -61,7 +78,12 @@ export async function runConversationLevel(input: ScenarioInput): Promise<LevelR
   const outbound = scenario.turns.some(isStageDirection);
   const toolContext: GatewayToolContext = {
     orgId,
-    actor: { kind: "bot", id: botVersion.botId, orgId: OrgId.parse(orgId), botVersionId: botVersion.id },
+    actor: {
+      kind: "bot",
+      id: botVersion.botId,
+      orgId: OrgId.parse(orgId),
+      botVersionId: botVersion.id,
+    },
     conversationId: world.conversationId,
     contactId: world.contactId,
     botVersionId: botVersion.id,
@@ -94,7 +116,11 @@ export async function runConversationLevel(input: ScenarioInput): Promise<LevelR
 
   const transcript: string[] = [];
   const history: Msg[] = [];
-  await record("conversation.started", { channel: "web", contactId: world.contactId, direction: outbound ? "outbound" : "inbound" }, "bot");
+  await record(
+    "conversation.started",
+    { channel: "web", contactId: world.contactId, direction: outbound ? "outbound" : "inbound" },
+    "bot",
+  );
 
   const maxTurns = options.maxTurns ?? DEFAULT_MAX_TURNS;
   for (let turn = 0; turn < maxTurns; turn++) {
@@ -110,7 +136,10 @@ export async function runConversationLevel(input: ScenarioInput): Promise<LevelR
 
     if (isStageDirection(said)) {
       // A stage direction is not something the customer says: the bot starts an outbound contact.
-      history.push({ role: "user", content: `[Sistema] Iniciá el contacto saliente con el cliente. ${said}` });
+      history.push({
+        role: "user",
+        content: `[Sistema] Iniciá el contacto saliente con el cliente. ${said}`,
+      });
     } else {
       history.push({ role: "user", content: said });
       transcript.push(`Cliente: ${said}`);
@@ -125,10 +154,15 @@ export async function runConversationLevel(input: ScenarioInput): Promise<LevelR
     }
   }
 
-  const events: InteractionEvent[] = await world.events.listByConversation(orgId, world.conversationId);
+  const events: InteractionEvent[] = await world.events.listByConversation(
+    orgId,
+    world.conversationId,
+  );
   const checks: AssertionCheck[] = scenario.assertions.map((assertion) => {
     const reason = checkAssertionOverEvents(assertion, events, effects);
-    return reason === null ? { assertion, status: "passed" } : { assertion, status: "failed", reason };
+    return reason === null
+      ? { assertion, status: "passed" }
+      : { assertion, status: "failed", reason };
   });
   return { passed: checks.every((c) => c.status === "passed"), checks, errors: [], transcript };
 }
@@ -139,7 +173,15 @@ export async function runConversationLevelSafe(input: ScenarioInput): Promise<Le
     return await runConversationLevel(input);
   } catch (e) {
     const reason = `la simulación falló: ${e instanceof Error ? e.message : String(e)}`;
-    return { passed: false, checks: input.scenario.assertions.map((assertion) => ({ assertion, status: "failed" as const, reason })), errors: [reason] };
+    return {
+      passed: false,
+      checks: input.scenario.assertions.map((assertion) => ({
+        assertion,
+        status: "failed" as const,
+        reason,
+      })),
+      errors: [reason],
+    };
   }
 }
 

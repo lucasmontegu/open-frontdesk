@@ -1,13 +1,32 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
-import { Badge, Button, Card, EmptyState, ErrorNote, Loading, PageHeader, Select, Table, Td, Textarea, Th } from "../components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  ErrorNote,
+  Loading,
+  PageHeader,
+  Select,
+  Table,
+  Td,
+  Textarea,
+  Th,
+} from "../components/ui";
 import { t } from "../i18n";
-import { type MissionDto, api } from "../lib/api";
+import { api, type MissionDto } from "../lib/api";
 import { formatDateTime, formatMinutes, shortId } from "../lib/format";
 
 const tone = (s: string) =>
-  s === "completed" ? "ok" : s === "failed" || s === "cancelled" ? "danger" : s === "awaiting_approval" ? "warn" : "accent";
+  s === "completed"
+    ? "ok"
+    : s === "failed" || s === "cancelled"
+      ? "danger"
+      : s === "awaiting_approval"
+        ? "warn"
+        : "accent";
 
 export function MissionsPage() {
   const qc = useQueryClient();
@@ -27,7 +46,10 @@ export function MissionsPage() {
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
-    create.mutate({ instruction: String(f.get("instruction")).trim(), botId: String(f.get("bot")) });
+    create.mutate({
+      instruction: String(f.get("instruction")).trim(),
+      botId: String(f.get("bot")),
+    });
   };
 
   const items = missions.data?.items ?? [];
@@ -37,7 +59,14 @@ export function MissionsPage() {
       <PageHeader title={t.missions.title} />
       <Card>
         <form onSubmit={submit} className="space-y-4">
-          <Textarea label={t.missions.prompt} name="instruction" rows={4} placeholder={t.missions.placeholder} required className="text-base" />
+          <Textarea
+            label={t.missions.prompt}
+            name="instruction"
+            rows={4}
+            placeholder={t.missions.placeholder}
+            required
+            className="text-base"
+          />
           <Select label={t.missions.bot} name="bot" required defaultValue={publishedBots[0]?.id}>
             {publishedBots.map((b) => (
               <option key={b.id} value={b.id}>
@@ -45,7 +74,9 @@ export function MissionsPage() {
               </option>
             ))}
           </Select>
-          {bots.data && publishedBots.length === 0 && <p className="text-sm text-muted">{t.missions.noBots}</p>}
+          {bots.data && publishedBots.length === 0 && (
+            <p className="text-sm text-muted">{t.missions.noBots}</p>
+          )}
           {create.error && <ErrorNote error={create.error} />}
           <Button type="submit" disabled={create.isPending || publishedBots.length === 0}>
             {t.missions.submit}
@@ -70,7 +101,11 @@ export function MissionsPage() {
               {items.map((m) => (
                 <tr key={m.id}>
                   <Td>
-                    <Link to="/misiones/$missionId" params={{ missionId: m.id }} className="text-accent underline">
+                    <Link
+                      to="/misiones/$missionId"
+                      params={{ missionId: m.id }}
+                      className="text-accent underline"
+                    >
                       {m.instruction}
                     </Link>
                   </Td>
@@ -131,7 +166,13 @@ export function MissionDetailPage() {
         }
       />
       <div className="space-y-4">
-        {m.status === "planning" && !plan && <Card><p role="status" className="text-sm text-muted">{t.missions.planning}</p></Card>}
+        {m.status === "planning" && !plan && (
+          <Card>
+            <p role="status" className="text-sm text-muted">
+              {t.missions.planning}
+            </p>
+          </Card>
+        )}
 
         {plan && (
           <Card title={t.missions.plan}>
@@ -147,7 +188,12 @@ export function MissionDetailPage() {
               </div>
               <div>
                 <dt className="text-muted">{t.missions.strategy}</dt>
-                <dd>{t.missions.strategyText(t.missions.channels[plan.channelStrategy.first] ?? plan.channelStrategy.first, plan.channelStrategy.fallbackAfterMinutes)}</dd>
+                <dd>
+                  {t.missions.strategyText(
+                    t.missions.channels[plan.channelStrategy.first] ?? plan.channelStrategy.first,
+                    plan.channelStrategy.fallbackAfterMinutes,
+                  )}
+                </dd>
               </div>
             </dl>
             <Table caption={t.missions.targets}>
@@ -163,12 +209,18 @@ export function MissionDetailPage() {
                 {plan.targets.slice(0, 100).map((x) => (
                   <tr key={x.contactId}>
                     <Td>
-                      <Link to="/contactos/$contactId" params={{ contactId: x.contactId }} className="text-accent underline">
+                      <Link
+                        to="/contactos/$contactId"
+                        params={{ contactId: x.contactId }}
+                        className="text-accent underline"
+                      >
                         {shortId(x.contactId)}
                       </Link>
                     </Td>
                     <Td>{t.missions.channels[x.channel] ?? x.channel}</Td>
-                    <Td className="font-mono text-xs">{Object.keys(x.offer).length ? JSON.stringify(x.offer) : ""}</Td>
+                    <Td className="font-mono text-xs">
+                      {Object.keys(x.offer).length ? JSON.stringify(x.offer) : ""}
+                    </Td>
                     <Td>{t.missions.targetStatuses[x.status] ?? x.status}</Td>
                   </tr>
                 ))}
@@ -210,7 +262,9 @@ export function MissionDetailPage() {
                 ))}
               </dl>
             ) : (
-              <p role="status" className="text-sm text-muted">{t.missions.live}...</p>
+              <p role="status" className="text-sm text-muted">
+                {t.missions.live}...
+              </p>
             )}
           </Card>
         )}

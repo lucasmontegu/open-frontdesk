@@ -25,7 +25,10 @@ export interface CalendarProvider {
   listFreeSlots(orgId: string, range: { from: Date; to: Date; limit?: number }): Promise<Slot[]>;
   getBooking(orgId: string, bookingId: string): Promise<Booking | null>;
   /** Rejects with an Error when the slot is no longer free. */
-  book(orgId: string, input: { contactId: string; slotId: string; kind?: string; note?: string }): Promise<Booking>;
+  book(
+    orgId: string,
+    input: { contactId: string; slotId: string; kind?: string; note?: string },
+  ): Promise<Booking>;
   reschedule(orgId: string, bookingId: string, newSlotId: string): Promise<Booking>;
   cancel(orgId: string, bookingId: string): Promise<Booking>;
 }
@@ -45,7 +48,10 @@ export class InMemoryCalendar implements CalendarProvider {
     });
   }
 
-  async listFreeSlots(orgId: string, { from, to, limit }: { from: Date; to: Date; limit?: number }): Promise<Slot[]> {
+  async listFreeSlots(
+    orgId: string,
+    { from, to, limit }: { from: Date; to: Date; limit?: number },
+  ): Promise<Slot[]> {
     const slots = [...this.orgSlots(orgId).values()]
       .filter((s) => s.start >= from && s.start < to)
       .sort((a, b) => a.start.getTime() - b.start.getTime());
@@ -57,7 +63,10 @@ export class InMemoryCalendar implements CalendarProvider {
     return b && b.orgId === orgId ? b : null;
   }
 
-  async book(orgId: string, input: { contactId: string; slotId: string; kind?: string; note?: string }): Promise<Booking> {
+  async book(
+    orgId: string,
+    input: { contactId: string; slotId: string; kind?: string; note?: string },
+  ): Promise<Booking> {
     const slot = this.takeSlot(orgId, input.slotId);
     const booking: Booking = {
       id: randomUUID(),
@@ -97,7 +106,10 @@ export class InMemoryCalendar implements CalendarProvider {
 
   private orgSlots(orgId: string): Map<string, Slot> {
     let m = this.free.get(orgId);
-    if (!m) this.free.set(orgId, (m = new Map()));
+    if (!m) {
+      m = new Map();
+      this.free.set(orgId, m);
+    }
     return m;
   }
 

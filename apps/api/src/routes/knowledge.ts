@@ -9,7 +9,11 @@ const searchQuery = z.object({
   limit: z.coerce.number().int().min(1).max(50).optional(),
   botId: z.string().optional(),
 });
-const ingestBody = z.object({ title: z.string().min(1), content: z.string().min(1), botId: z.string().nullish() });
+const ingestBody = z.object({
+  title: z.string().min(1),
+  content: z.string().min(1),
+  botId: z.string().nullish(),
+});
 
 export function knowledgeRoutes(container: Container) {
   const { knowledge } = container.repos;

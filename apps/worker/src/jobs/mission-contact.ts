@@ -1,6 +1,4 @@
-import { z } from "zod";
 import {
-  OrgId,
   type BotRepository,
   type BotVersion,
   type Clock,
@@ -11,11 +9,13 @@ import {
   type JobQueue,
   type MissionPlan,
   type MissionRepository,
+  OrgId,
   type ProfileLoader,
   type TelephonyProvider,
   type ToolCallContext,
   type ToolGateway,
 } from "@ofd/core";
+import { z } from "zod";
 import { appendSystemEvent, type Log, PermanentJobError, silentLog, systemClock } from "../deps.js";
 import type { MessageComposer } from "../message-composer.js";
 import { updateTargetStatus } from "../mission-report.js";
@@ -60,14 +60,22 @@ export interface MissionContactDeps {
 
 type Strategy = MissionPlan["channelStrategy"];
 
-async function resolveVersion(deps: MissionContactDeps, orgId: string, ref: string): Promise<BotVersion | null> {
+async function resolveVersion(
+  deps: MissionContactDeps,
+  orgId: string,
+  ref: string,
+): Promise<BotVersion | null> {
   // Callbacks scheduled by the agent carry a bot version id, missions a bot id.
   const bot = await deps.bots.get(orgId, ref);
-  if (bot) return bot.publishedVersionId ? deps.bots.getVersion(orgId, bot.publishedVersionId) : null;
+  if (bot)
+    return bot.publishedVersionId ? deps.bots.getVersion(orgId, bot.publishedVersionId) : null;
   return deps.bots.getVersion(orgId, ref);
 }
 
-const phoneFor = (c: Contact) => c.identities.find((i) => i.kind === "phone")?.value ?? c.identities.find((i) => i.kind === "whatsapp")?.value ?? null;
+const phoneFor = (c: Contact) =>
+  c.identities.find((i) => i.kind === "phone")?.value ??
+  c.identities.find((i) => i.kind === "whatsapp")?.value ??
+  null;
 
 export async function missionContact(deps: MissionContactDeps, data: unknown): Promise<void> {
   const job = MissionContactJobSchema.parse(data);
@@ -76,7 +84,12 @@ export async function missionContact(deps: MissionContactDeps, data: unknown): P
 
   const mission = job.missionId ? await deps.missions.get(job.orgId, job.missionId) : null;
   if (job.missionId && !mission) throw new PermanentJobError(`mission ${job.missionId} not found`);
-  if (mission && (mission.status === "cancelled" || mission.status === "completed" || mission.status === "failed")) {
+  if (
+    mission &&
+    (mission.status === "cancelled" ||
+      mission.status === "completed" ||
+      mission.status === "failed")
+  ) {
     log.info({ missionId: job.missionId, status: mission.status }, "mission.contact skipped");
     return;
   }
@@ -84,7 +97,8 @@ export async function missionContact(deps: MissionContactDeps, data: unknown): P
   const ref = job.botId ?? mission?.botId;
   const version = ref ? await resolveVersion(deps, job.orgId, ref) : null;
   const settle = async (status: "succeeded" | "no_answer" | "failed" | "contacted") => {
-    if (job.missionId) await updateTargetStatus(deps, job.orgId, job.missionId, job.contactId, status);
+    if (job.missionId)
+      await updateTargetStatus(deps, job.orgId, job.missionId, job.contactId, status);
   };
   if (!version) {
     log.error({ ...job }, "mission.contact: no published bot version");
@@ -99,14 +113,25 @@ export async function missionContact(deps: MissionContactDeps, data: unknown): P
     return;
   }
 
-  const strategy: Strategy = mission?.plan?.channelStrategy ?? { first: job.channel, fallbackAfterMinutes: null };
+  const strategy: Strategy = mission?.plan?.channelStrategy ?? {
+    first: job.channel,
+    fallbackAfterMinutes: null,
+  };
 
   if (job.attempt === "check") {
     const since = job.since ? new Date(job.since) : new Date(0);
-    const page = await deps.events.list(job.orgId, { contactId: job.contactId, types: ["customer.message"], limit: 50 });
+    const page = await deps.events.list(job.orgId, {
+      contactId: job.contactId,
+      types: ["customer.message"],
+      limit: 50,
+    });
     const replied = page.items.some((e) => e.occurredAt >= since);
     if (replied) return settle("succeeded");
-    if (job.stage === "first" && strategy.first === "whatsapp" && strategy.fallbackAfterMinutes !== null) {
+    if (
+      job.stage === "first" &&
+      strategy.first === "whatsapp" &&
+      strategy.fallbackAfterMinutes !== null
+    ) {
       await attempt(deps, job, version, contact, "voice", strategy, clock, log);
       return;
     }
@@ -143,7 +168,12 @@ async function attempt(
   await appendSystemEvent(deps.events, {
     orgId,
     type: "conversation.started",
-    payload: { channel, contactId: contact.id, direction: "outbound", ...(job.missionId ? { missionId: job.missionId } : {}) },
+    payload: {
+      channel,
+      contactId: contact.id,
+      direction: "outbound",
+      ...(job.missionId ? { missionId: job.missionId } : {}),
+    },
     conversationId: conversation.id,
     botVersionId: version.id,
     contactId: contact.id,
@@ -159,10 +189,23 @@ async function attempt(
   try {
     if (channel === "whatsapp") {
       const profile = await deps.profiles.load(orgId, contact.id);
-      const text = await deps.compose({ orgId, version, contact, profile, conversationId: conversation.id, offer: job.offer, ...(job.reason ? { reason: job.reason } : {}) });
+      const text = await deps.compose({
+        orgId,
+        version,
+        contact,
+        profile,
+        conversationId: conversation.id,
+        offer: job.offer,
+        ...(job.reason ? { reason: job.reason } : {}),
+      });
       const ctx: ToolCallContext = {
         orgId,
-        actor: { kind: "bot", id: version.botId, orgId: OrgId.parse(orgId), botVersionId: version.id },
+        actor: {
+          kind: "bot",
+          id: version.botId,
+          orgId: OrgId.parse(orgId),
+          botVersionId: version.id,
+        },
         conversationId: conversation.id,
         contactId: contact.id,
         botVersionId: version.id,
@@ -171,7 +214,11 @@ async function attempt(
         traceId: null,
       };
       const res = await deps.gateway.call("send_whatsapp", { text }, ctx);
-      if (!res.ok) return await fail(res.refused ? "refused" : "send_failed", res.refused ? res.reason : res.error);
+      if (!res.ok)
+        return await fail(
+          res.refused ? "refused" : "send_failed",
+          res.refused ? res.reason : res.error,
+        );
       await deps.events.append({
         orgId,
         type: "agent.message",
@@ -191,7 +238,12 @@ async function attempt(
         to,
         botVersionId: version.id,
         conversationId: conversation.id,
-        context: { contactId: contact.id, missionId: job.missionId, offer: job.offer, ...(job.reason ? { reason: job.reason } : {}) },
+        context: {
+          contactId: contact.id,
+          missionId: job.missionId,
+          offer: job.offer,
+          ...(job.reason ? { reason: job.reason } : {}),
+        },
       });
     }
   } catch (err) {
@@ -201,9 +253,21 @@ async function attempt(
   if (!job.missionId) return; // a callback has no plan to settle
   await updateTargetStatus(deps, orgId, job.missionId, contact.id, "contacted");
   const first = channel === strategy.first;
-  const minutes = channel === "voice" ? VOICE_WAIT_MINUTES : (strategy.fallbackAfterMinutes ?? DEFAULT_CHECK_MINUTES);
-  const stage = first && channel === "whatsapp" && strategy.fallbackAfterMinutes !== null ? "first" : "fallback";
-  const next: MissionContactJobData = { ...job, channel, attempt: "check", stage, since: startedAt.toISOString() };
+  const minutes =
+    channel === "voice"
+      ? VOICE_WAIT_MINUTES
+      : (strategy.fallbackAfterMinutes ?? DEFAULT_CHECK_MINUTES);
+  const stage =
+    first && channel === "whatsapp" && strategy.fallbackAfterMinutes !== null
+      ? "first"
+      : "fallback";
+  const next: MissionContactJobData = {
+    ...job,
+    channel,
+    attempt: "check",
+    stage,
+    since: startedAt.toISOString(),
+  };
   await deps.jobs.enqueue("mission.contact", next, {
     startAfterSeconds: minutes * 60,
     singletonKey: `${contactSingletonKey(job.missionId, contact.id)}:check:${stage}`,

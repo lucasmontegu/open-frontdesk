@@ -19,9 +19,14 @@ export function missionRoutes(container: Container) {
       const { instruction, botId } = c.req.valid("json");
       const bot = await bots.get(actor.orgId, botId);
       if (!bot) throw notFound("bot");
-      if (!bot.publishedVersionId) throw new DomainError("conflict", "The bot has no published version");
+      if (!bot.publishedVersionId)
+        throw new DomainError("conflict", "The bot has no published version");
       const version = await bots.getVersion(actor.orgId, bot.publishedVersionId);
-      const mission = await missions.create(actor.orgId, { botId, createdBy: actor.id, instruction });
+      const mission = await missions.create(actor.orgId, {
+        botId,
+        createdBy: actor.id,
+        instruction,
+      });
       await container.jobs.enqueue("mission.plan", {
         orgId: actor.orgId,
         missionId: mission.id,
@@ -56,7 +61,11 @@ export function missionRoutes(container: Container) {
         actorId: actor.id,
         traceId: c.get("requestId"),
       });
-      await container.jobs.enqueue("mission.execute", { orgId: actor.orgId, missionId: mission.id, approvedBy: actor.id });
+      await container.jobs.enqueue("mission.execute", {
+        orgId: actor.orgId,
+        missionId: mission.id,
+        approvedBy: actor.id,
+      });
       return c.json(updated);
     });
 }

@@ -3,7 +3,12 @@ import type { MastraModelConfig } from "@mastra/core/llm";
 import type { Memory } from "@mastra/memory";
 import type { BotVersion, ContactProfile, EventStore, ToolGateway } from "@ofd/core";
 import { buildGatewayTools, type GatewayToolContext } from "./gateway-tools.js";
-import { FrontDeskInputGuard, FrontDeskOutputGuard, type GuardContext, type OutputRules } from "./guards.js";
+import {
+  FrontDeskInputGuard,
+  FrontDeskOutputGuard,
+  type GuardContext,
+  type OutputRules,
+} from "./guards.js";
 import { buildInstructions } from "./instructions.js";
 
 export type LanguageModel = MastraModelConfig;
@@ -39,7 +44,10 @@ export function createFrontDeskAgent(opts: CreateFrontDeskAgentOptions): Agent {
     description: config.role,
     instructions: buildInstructions(config, profile),
     model: (opts.model ?? config.model) as MastraModelConfig,
-    tools: buildGatewayTools(gateway, config.tools, { ...toolContext, botVersionId: toolContext.botVersionId ?? botVersion.id }),
+    tools: buildGatewayTools(gateway, config.tools, {
+      ...toolContext,
+      botVersionId: toolContext.botVersionId ?? botVersion.id,
+    }),
     ...(opts.memory ? { memory: opts.memory } : {}),
     inputProcessors: [new FrontDeskInputGuard(guardCtx, opts.events)],
     outputProcessors: [new FrontDeskOutputGuard(opts.outputRules ?? {}, guardCtx, opts.events)],

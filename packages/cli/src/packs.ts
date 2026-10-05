@@ -1,7 +1,15 @@
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { basename, join, resolve } from "node:path";
-import { BUILTIN_PACKS_DIR, getBuiltinPack, loadPack, PackError, type Pack } from "@ofd/packs";
 import { invalidPolicyRules } from "@ofd/evals";
+import { BUILTIN_PACKS_DIR, getBuiltinPack, loadPack, type Pack, PackError } from "@ofd/packs";
 import { parse, stringify } from "yaml";
 
 /** A builtin pack id or a pack directory. A directory wins when it exists, so `./cobranza-ar` can be a local fork. */
@@ -21,7 +29,8 @@ export function validatePackDir(dir: string): { pack: Pack | null; problems: str
     throw e;
   }
   const problems: string[] = [];
-  for (const bad of invalidPolicyRules(pack.policies)) problems.push(`policies.yaml: la regla "${bad.ruleId}" no compila: ${bad.error}`);
+  for (const bad of invalidPolicyRules(pack.policies))
+    problems.push(`policies.yaml: la regla "${bad.ruleId}" no compila: ${bad.error}`);
   const seen = new Set<string>();
   for (const s of pack.scenarios) {
     if (seen.has(s.id)) problems.push(`scenarios: id duplicado "${s.id}"`);
@@ -33,11 +42,14 @@ export function validatePackDir(dir: string): { pack: Pack | null; problems: str
 const TEMPLATE = "recepcion-ar";
 
 /** Copies the recepcion-ar pack into `dir` and renames it after the directory. Returns the new pack id. */
-export function scaffoldPack(dir: string): { id: string } | { error: "exists" | "bad_id"; id: string } {
+export function scaffoldPack(
+  dir: string,
+): { id: string } | { error: "exists" | "bad_id"; id: string } {
   const target = resolve(dir);
   const id = basename(target);
   if (!/^[a-z0-9-]+$/.test(id)) return { error: "bad_id", id };
-  if (existsSync(target) && (!statSync(target).isDirectory() || readdirSync(target).length > 0)) return { error: "exists", id };
+  if (existsSync(target) && (!statSync(target).isDirectory() || readdirSync(target).length > 0))
+    return { error: "exists", id };
 
   mkdirSync(target, { recursive: true });
   cpSync(join(BUILTIN_PACKS_DIR, TEMPLATE), target, { recursive: true });

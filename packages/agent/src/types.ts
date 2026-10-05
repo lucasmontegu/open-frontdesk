@@ -1,6 +1,12 @@
 /** Creates a payment link (Mercado Pago, etc.) for an amount. */
 export interface PaymentLinkProvider {
-  create(input: { orgId: string; contactId: string; obligationId: string; amount: number; currency: string }): Promise<{ url: string }>;
+  create(input: {
+    orgId: string;
+    contactId: string;
+    obligationId: string;
+    amount: number;
+    currency: string;
+  }): Promise<{ url: string }>;
 }
 
 /** Org-level limits for collections. get_payment_options never returns anything outside them. */
@@ -13,7 +19,11 @@ export interface PaymentPolicy {
   maxPromiseDays: number;
 }
 
-export const DEFAULT_PAYMENT_POLICY: PaymentPolicy = { maxDiscountPercent: 0, maxInstallments: 1, maxPromiseDays: 30 };
+export const DEFAULT_PAYMENT_POLICY: PaymentPolicy = {
+  maxDiscountPercent: 0,
+  maxInstallments: 1,
+  maxPromiseDays: 30,
+};
 
 /** Payload of every `mission.contact` job: one target of a mission, or a callback the customer asked for. */
 export interface MissionContactJob {

@@ -7,10 +7,16 @@ export function Header() {
   return (
     <header className="border-b border-line">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4">
-        <Link href="/" className="font-semibold">OpenFrontDesk</Link>
+        <Link href="/" className="font-semibold">
+          OpenFrontDesk
+        </Link>
         <nav className="flex items-center gap-5 text-sm text-muted">
-          <Link href="/docs" className="hover:text-fg">Docs</Link>
-          <a href={GITHUB_URL} className="hover:text-fg">GitHub</a>
+          <Link href="/docs" className="hover:text-fg">
+            Docs
+          </Link>
+          <a href={GITHUB_URL} className="hover:text-fg">
+            GitHub
+          </a>
         </nav>
       </div>
     </header>
@@ -25,12 +31,21 @@ export function Footer() {
   );
 }
 
-export function ButtonLink({ href, children, primary }: { href: string; children: ReactNode; primary?: boolean }) {
-  const cls = primary
-    ? "bg-accent text-accent-fg"
-    : "border border-line bg-surface text-fg";
+export function ButtonLink({
+  href,
+  children,
+  primary,
+}: {
+  href: string;
+  children: ReactNode;
+  primary?: boolean;
+}) {
+  const cls = primary ? "bg-accent text-accent-fg" : "border border-line bg-surface text-fg";
   return (
-    <a href={href} className={`inline-flex items-center rounded-md px-5 py-3 text-sm font-medium ${cls}`}>
+    <a
+      href={href}
+      className={`inline-flex items-center rounded-md px-5 py-3 text-sm font-medium ${cls}`}
+    >
       {children}
     </a>
   );

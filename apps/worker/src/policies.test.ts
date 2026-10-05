@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import type { ToolCallContext } from "@ofd/core";
+import { describe, expect, it } from "vitest";
 import { FakeBots, makeVersion, ORG } from "./fakes.js";
 import { createPolicyResolver } from "./policies.js";
 
@@ -9,7 +9,10 @@ const rule = (id: string) => ({ id, effect: "allow" as const, description: "", w
 describe("policy resolver", () => {
   it("adds the pack's policies to the org rules, org rules winning on id clashes", async () => {
     const resolve = createPolicyResolver({
-      policies: { rulesFor: async () => [rule("org_a"), rule("shared")], setOrgRules: async () => {} },
+      policies: {
+        rulesFor: async () => [rule("org_a"), rule("shared")],
+        setOrgRules: async () => {},
+      },
       bots: new FakeBots(makeVersion({ pack: { id: "cobranza-ar", version: "1" } })) as never,
       packPolicies: (id) => (id === "cobranza-ar" ? [rule("pack_a"), rule("shared")] : []),
     });

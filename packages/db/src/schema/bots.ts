@@ -1,7 +1,17 @@
 import type { BotConfig, BotVersionStatus } from "@ofd/core";
-import { boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 
-const createdAt = () => timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow();
+const createdAt = () =>
+  timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow();
 
 export const bots = pgTable(
   "bots",

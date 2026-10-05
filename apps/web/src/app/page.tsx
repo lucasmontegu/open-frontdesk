@@ -25,17 +25,21 @@ export default function Home() {
   return (
     <main>
       <section className="mx-auto max-w-5xl px-4 py-20">
-        <p className="mb-4 text-sm font-medium text-accent">Front desk autónomo, de código abierto</p>
+        <p className="mb-4 text-sm font-medium text-accent">
+          Front desk autónomo, de código abierto
+        </p>
         <h1 className="max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl">
           Decile qué hacer, no cómo.
         </h1>
         <p className="mt-6 max-w-2xl text-lg text-muted">
-          OpenFrontDesk atiende llamadas y WhatsApp, cobra, vende y agenda por su cuenta. Vos le das el
-          objetivo en una frase; él arma el plan, lo ejecuta y te lo reporta, siempre dentro de las reglas
-          que definiste.
+          OpenFrontDesk atiende llamadas y WhatsApp, cobra, vende y agenda por su cuenta. Vos le das
+          el objetivo en una frase; él arma el plan, lo ejecuta y te lo reporta, siempre dentro de
+          las reglas que definiste.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
-          <ButtonLink primary href="/docs/quickstart">Probalo local con docker compose</ButtonLink>
+          <ButtonLink primary href="/docs/quickstart">
+            Probalo local con docker compose
+          </ButtonLink>
           <ButtonLink href={GITHUB_URL}>Ver en GitHub</ButtonLink>
         </div>
       </section>
@@ -43,7 +47,9 @@ export default function Home() {
       <section className="border-y border-line bg-surface">
         <div className="mx-auto max-w-5xl px-4 py-16">
           <h2 className="text-2xl font-semibold">Tres puntos de control</h2>
-          <p className="mt-2 max-w-2xl text-muted">Autonomía no es perder el control. Estos tres puntos son innegociables.</p>
+          <p className="mt-2 max-w-2xl text-muted">
+            Autonomía no es perder el control. Estos tres puntos son innegociables.
+          </p>
           <div className="mt-8 grid gap-6 md:grid-cols-3">
             {controls.map((c, i) => (
               <div key={c.title} className="rounded-lg border border-line p-5">
@@ -59,8 +65,8 @@ export default function Home() {
       <section className="mx-auto max-w-5xl px-4 py-16">
         <h2 className="text-2xl font-semibold">Packs certificados</h2>
         <p className="mt-2 max-w-2xl text-muted">
-          Bots listos para instalar, con sus políticas y su suite de evals ya probadas. Los instalás con un
-          comando y los ajustás a tu operación.
+          Bots listos para instalar, con sus políticas y su suite de evals ya probadas. Los instalás
+          con un comando y los ajustás a tu operación.
         </p>
         <div className="mt-8 grid gap-6 md:grid-cols-3">
           {packs.map(([name, body]) => (
@@ -77,15 +83,15 @@ export default function Home() {
           <div>
             <h2 className="text-2xl font-semibold">Código abierto</h2>
             <p className="mt-2 text-muted">
-              El núcleo es Apache-2.0. Todo lo que una empresa necesita para operar un bot seguro está
-              incluido, y se levanta con un solo comando.
+              El núcleo es Apache-2.0. Todo lo que una empresa necesita para operar un bot seguro
+              está incluido, y se levanta con un solo comando.
             </p>
           </div>
           <div>
             <h2 className="text-2xl font-semibold">Cloud</h2>
             <p className="mt-2 text-muted">
-              Si preferís no operar nada, la versión cloud suma facturación, multi-tenencia administrada,
-              SSO, simulación a gran escala y números administrados.
+              Si preferís no operar nada, la versión cloud suma facturación, multi-tenencia
+              administrada, SSO, simulación a gran escala y números administrados.
             </p>
           </div>
         </div>
@@ -94,7 +100,9 @@ export default function Home() {
       <section className="mx-auto max-w-5xl px-4 py-16 text-center">
         <h2 className="text-2xl font-semibold">Empezá en cinco minutos</h2>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <ButtonLink primary href="/docs/quickstart">Probalo local con docker compose</ButtonLink>
+          <ButtonLink primary href="/docs/quickstart">
+            Probalo local con docker compose
+          </ButtonLink>
           <ButtonLink href={GITHUB_URL}>GitHub</ButtonLink>
         </div>
       </section>

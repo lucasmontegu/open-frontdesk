@@ -11,8 +11,14 @@ describe("voice components", () => {
   it("builds Deepgram and Cartesia plugins from the version's voice config and caches them", () => {
     const c = createVoiceComponents({ deepgramApiKey: "dk", cartesiaApiKey: "ck" }, factories);
     const voice = { stt: "deepgram/nova-3", tts: "cartesia/sonic-3", language: "es-AR" };
-    expect(c.stt(voice)).toEqual({ kind: "stt", o: { model: "nova-3", language: "es-419", apiKey: "dk" } });
-    expect(c.tts(voice)).toEqual({ kind: "tts", o: { model: "sonic-3", language: "es", apiKey: "ck" } });
+    expect(c.stt(voice)).toEqual({
+      kind: "stt",
+      o: { model: "nova-3", language: "es-419", apiKey: "dk" },
+    });
+    expect(c.tts(voice)).toEqual({
+      kind: "tts",
+      o: { model: "sonic-3", language: "es", apiKey: "ck" },
+    });
     expect(c.tts(voice)).toBe(c.tts(voice));
     expect(calls).toHaveLength(1);
   });
@@ -28,7 +34,9 @@ describe("voice components", () => {
   });
 
   it("speaks Spanish while a tool runs", () => {
-    expect(toolFeedback({ toolName: "find_available_slots" })).toBe("Dame un segundo que lo reviso.");
+    expect(toolFeedback({ toolName: "find_available_slots" })).toBe(
+      "Dame un segundo que lo reviso.",
+    );
     expect(toolFeedback({ toolName: "transfer_to_human" })).toMatch(/te paso/);
   });
 });

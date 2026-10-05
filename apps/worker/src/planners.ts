@@ -1,6 +1,17 @@
-import type { Clock, ContactIdentity, MissionPlan, MissionTarget, PortfolioRepository } from "@ofd/core";
-import { planRescheduleMission, type CalendarProvider, type MissionPlanner, type RescheduleMissionDeps } from "@ofd/agent";
-import type { HoldStore } from "@ofd/core";
+import {
+  type CalendarProvider,
+  type MissionPlanner,
+  planRescheduleMission,
+  type RescheduleMissionDeps,
+} from "@ofd/agent";
+import type {
+  Clock,
+  ContactIdentity,
+  HoldStore,
+  MissionPlan,
+  MissionTarget,
+  PortfolioRepository,
+} from "@ofd/core";
 import type { AppointmentsLoader } from "./appointments.js";
 
 export interface PlannerSelectorDeps {
@@ -11,13 +22,16 @@ export interface PlannerSelectorDeps {
   clock?: Clock;
 }
 
-const APPOINTMENT_WORDS = /\b(turnos?|citas?|appointments?|reprogram\w*|reagend\w*|reschedul\w*)\b/i;
+const APPOINTMENT_WORDS =
+  /\b(turnos?|citas?|appointments?|reprogram\w*|reagend\w*|reschedul\w*)\b/i;
 
-export const isAppointmentInstruction = (instruction: string): boolean => APPOINTMENT_WORDS.test(instruction);
+export const isAppointmentInstruction = (instruction: string): boolean =>
+  APPOINTMENT_WORDS.test(instruction);
 
 const normalize = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 
-const reachable = (identities: ContactIdentity[]) => identities.some((i) => i.kind === "whatsapp" || i.kind === "phone");
+const reachable = (identities: ContactIdentity[]) =>
+  identities.some((i) => i.kind === "whatsapp" || i.kind === "phone");
 
 const MAX_TARGETS = 500;
 
@@ -26,7 +40,9 @@ const MAX_TARGETS = 500;
  * instruction mentions, or the only one the org has.
  * TODO: let the LLM planner pick the portfolio and build a per-contact offer.
  */
-export function planPortfolioMission(deps: Pick<PlannerSelectorDeps, "portfolios">): MissionPlanner {
+export function planPortfolioMission(
+  deps: Pick<PlannerSelectorDeps, "portfolios">,
+): MissionPlanner {
   return async ({ orgId, instruction }): Promise<MissionPlan> => {
     const all = await deps.portfolios.list(orgId);
     const text = normalize(instruction);
@@ -38,7 +54,10 @@ export function planPortfolioMission(deps: Pick<PlannerSelectorDeps, "portfolios
       estimatedMinutes: 0,
       channelStrategy: { first: "whatsapp", fallbackAfterMinutes: null },
     });
-    if (!chosen) return empty(`${instruction} — no se pudo determinar la cartera; mencioná su nombre en la instrucción.`);
+    if (!chosen)
+      return empty(
+        `${instruction} — no se pudo determinar la cartera; mencioná su nombre en la instrucción.`,
+      );
 
     const targets: MissionTarget[] = [];
     const seen = new Set<string>();
@@ -51,7 +70,14 @@ export function planPortfolioMission(deps: Pick<PlannerSelectorDeps, "portfolios
         targets.push({
           contactId: contact.id,
           channel: "whatsapp",
-          offer: { type: "outreach", obligationId: obligation.id, kind: obligation.kind, amount: obligation.amount, currency: obligation.currency, instruction },
+          offer: {
+            type: "outreach",
+            obligationId: obligation.id,
+            kind: obligation.kind,
+            amount: obligation.amount,
+            currency: obligation.currency,
+            instruction,
+          },
           status: "pending",
         });
       }
@@ -68,7 +94,9 @@ export function planPortfolioMission(deps: Pick<PlannerSelectorDeps, "portfolios
 }
 
 /** Picks the planner for an instruction: appointment/turno wording uses the reschedule planner, anything else the portfolio one. */
-export function createPlannerSelector(deps: PlannerSelectorDeps): (instruction: string) => MissionPlanner {
+export function createPlannerSelector(
+  deps: PlannerSelectorDeps,
+): (instruction: string) => MissionPlanner {
   const reschedule: RescheduleMissionDeps = {
     appointments: deps.appointments,
     calendar: deps.calendar,

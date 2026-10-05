@@ -1,11 +1,10 @@
 import { randomUUID } from "node:crypto";
-import type { Role } from "@ofd/core";
 import { can as canRole } from "@ofd/auth";
+import type { Role } from "@ofd/core";
 import type { MiddlewareHandler } from "hono";
 import type { Container } from "../container.js";
-import { HttpError } from "./errors.js";
 import type { AppEnv, Permission } from "./env.js";
-
+import { HttpError } from "./errors.js";
 
 export const requestId = (): MiddlewareHandler<AppEnv> => async (c, next) => {
   const id = c.req.header("x-request-id") ?? randomUUID();
@@ -14,14 +13,22 @@ export const requestId = (): MiddlewareHandler<AppEnv> => async (c, next) => {
   await next();
 };
 
-export const jsonLogging = (container: Container): MiddlewareHandler<AppEnv> => async (c, next) => {
-  const start = Date.now();
-  await next();
-  container.logger.info(
-    { requestId: c.get("requestId"), method: c.req.method, path: c.req.path, status: c.res.status, ms: Date.now() - start },
-    "request",
-  );
-};
+export const jsonLogging =
+  (container: Container): MiddlewareHandler<AppEnv> =>
+  async (c, next) => {
+    const start = Date.now();
+    await next();
+    container.logger.info(
+      {
+        requestId: c.get("requestId"),
+        method: c.req.method,
+        path: c.req.path,
+        status: c.res.status,
+        ms: Date.now() - start,
+      },
+      "request",
+    );
+  };
 
 const ROLES: Role[] = ["owner", "admin", "supervisor", "operator", "viewer"];
 
@@ -32,26 +39,34 @@ function pickRole(raw: string | undefined): Role | null {
 }
 
 /** Resolves the session and the member's role in the active organization into an Actor. */
-export const authenticate = (container: Container): MiddlewareHandler<AppEnv> => async (c, next) => {
-  const headers = c.req.raw.headers;
-  const bearer = headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
-  if (bearer) {
-    // Organization API keys act with the admin role in the organization that owns them.
-    const result = await container.auth.api.verifyApiKey({ body: { key: bearer } });
-    if (!result.valid || !result.key) throw new HttpError(401, "unauthorized", "Invalid API key");
-    c.set("actor", { kind: "user", id: `apikey:${result.key.id}`, orgId: result.key.referenceId as never, role: "admin" });
-    return next();
-  }
-  const session = await container.auth.api.getSession({ headers });
-  if (!session) throw new HttpError(401, "unauthorized", "Authentication required");
-  const orgId = session.session.activeOrganizationId;
-  if (!orgId) throw new HttpError(403, "forbidden", "No active organization on this session");
-  const member = await container.auth.api.getActiveMember({ headers });
-  const role = pickRole(member?.role);
-  if (!member || !role) throw new HttpError(403, "forbidden", "Not a member of the active organization");
-  c.set("actor", { kind: "user", id: session.user.id, orgId: orgId as never, role });
-  await next();
-};
+export const authenticate =
+  (container: Container): MiddlewareHandler<AppEnv> =>
+  async (c, next) => {
+    const headers = c.req.raw.headers;
+    const bearer = headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
+    if (bearer) {
+      // Organization API keys act with the admin role in the organization that owns them.
+      const result = await container.auth.api.verifyApiKey({ body: { key: bearer } });
+      if (!result.valid || !result.key) throw new HttpError(401, "unauthorized", "Invalid API key");
+      c.set("actor", {
+        kind: "user",
+        id: `apikey:${result.key.id}`,
+        orgId: result.key.referenceId as never,
+        role: "admin",
+      });
+      return next();
+    }
+    const session = await container.auth.api.getSession({ headers });
+    if (!session) throw new HttpError(401, "unauthorized", "Authentication required");
+    const orgId = session.session.activeOrganizationId;
+    if (!orgId) throw new HttpError(403, "forbidden", "No active organization on this session");
+    const member = await container.auth.api.getActiveMember({ headers });
+    const role = pickRole(member?.role);
+    if (!member || !role)
+      throw new HttpError(403, "forbidden", "Not a member of the active organization");
+    c.set("actor", { kind: "user", id: session.user.id, orgId: orgId as never, role });
+    await next();
+  };
 
 export const requirePermission =
   (...[resource, action]: Permission): MiddlewareHandler<AppEnv> =>

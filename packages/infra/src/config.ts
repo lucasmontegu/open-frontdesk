@@ -50,13 +50,17 @@ export class ConfigError extends Error {
 /** Validates the environment once at startup; reports every problem at once. */
 export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
   // Treat empty strings as unset so `FOO=` in a .env file behaves like a missing variable.
-  const cleaned = Object.fromEntries(Object.entries(env).filter(([, v]) => v !== undefined && v !== ""));
+  const cleaned = Object.fromEntries(
+    Object.entries(env).filter(([, v]) => v !== undefined && v !== ""),
+  );
   const parsed = ConfigSchema.safeParse(cleaned);
   if (!parsed.success) {
     throw new ConfigError(
       parsed.error.issues.map((i) => {
         const name = String(i.path[0] ?? "(root)");
-        return i.code === "invalid_type" && i.input === undefined ? `${name}: missing` : `${name}: ${i.message}`;
+        return i.code === "invalid_type" && i.input === undefined
+          ? `${name}: missing`
+          : `${name}: ${i.message}`;
       }),
     );
   }

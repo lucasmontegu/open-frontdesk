@@ -10,7 +10,9 @@ export class ConsoleMessagingProvider implements MessagingProvider {
   readonly id = "console";
   readonly sent: Array<{ orgId: string; to: string; text: string; conversationId: string }> = [];
 
-  constructor(private readonly logger: MinimalLogger = { info: (o, m) => console.log(m ?? "message", o) }) {}
+  constructor(
+    private readonly logger: MinimalLogger = { info: (o, m) => console.log(m ?? "message", o) },
+  ) {}
 
   async send(input: { orgId: string; to: string; text: string; conversationId: string }) {
     this.sent.push(input);

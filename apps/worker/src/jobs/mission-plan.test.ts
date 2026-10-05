@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import type { MissionPlan } from "@ofd/core";
+import { describe, expect, it } from "vitest";
 import { FakeBots, FakeEvents, FakeJobs, FakeMissions, makeVersion, ORG } from "../fakes.js";
 import { missionPlan } from "./mission-plan.js";
 
@@ -66,6 +66,13 @@ describe("mission.plan", () => {
 describe("mission.plan payload", () => {
   it("accepts the API payload", async () => {
     const { deps } = setup(3);
-    await missionPlan(deps, { orgId: ORG, missionId: "m1", botId: "bot_1", instruction: "x", autonomy: 3, createdBy: "user_1" });
+    await missionPlan(deps, {
+      orgId: ORG,
+      missionId: "m1",
+      botId: "bot_1",
+      instruction: "x",
+      autonomy: 3,
+      createdBy: "user_1",
+    });
   });
 });

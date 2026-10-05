@@ -1,5 +1,6 @@
 import type {
   Bot,
+  BotConfig,
   BotRepository,
   BotVersion,
   Contact,
@@ -19,7 +20,6 @@ import type {
   ToolCallContext,
   ToolGateway,
   ToolResult,
-  BotConfig,
 } from "@ofd/core";
 import { BotConfig as BotConfigSchema } from "@ofd/core";
 
@@ -49,7 +49,12 @@ export function makeVersion(over: Partial<BotConfig> = {}): BotVersion {
     orgId: ORG,
     botId: "bot_1",
     version: 1,
-    config: BotConfigSchema.parse({ name: "Sofi", role: "recepcionista", instructions: "Atendé con calidez.", ...over }),
+    config: BotConfigSchema.parse({
+      name: "Sofi",
+      role: "recepcionista",
+      instructions: "Atendé con calidez.",
+      ...over,
+    }),
     status: "published",
     evalRunId: null,
     createdAt: new Date(0),
@@ -57,8 +62,16 @@ export function makeVersion(over: Partial<BotConfig> = {}): BotVersion {
 }
 
 export class FakeJobs implements JobQueue {
-  sent: Array<{ name: JobName; data: Record<string, unknown>; opts?: { startAfterSeconds?: number; singletonKey?: string } }> = [];
-  async enqueue<T extends object>(name: JobName, data: T, opts?: { startAfterSeconds?: number; singletonKey?: string }) {
+  sent: Array<{
+    name: JobName;
+    data: Record<string, unknown>;
+    opts?: { startAfterSeconds?: number; singletonKey?: string };
+  }> = [];
+  async enqueue<T extends object>(
+    name: JobName,
+    data: T,
+    opts?: { startAfterSeconds?: number; singletonKey?: string },
+  ) {
     this.sent.push({ name, data: data as Record<string, unknown>, ...(opts ? { opts } : {}) });
     return `job_${this.sent.length}`;
   }
@@ -71,7 +84,11 @@ export class FakeEvents implements EventStore {
   all: InteractionEvent[] = [];
   private seq = 0;
   async append(e: Parameters<EventStore["append"]>[0]) {
-    const ev = { ...e, id: `ev_${++this.seq}`, occurredAt: e.occurredAt ?? new Date() } as InteractionEvent;
+    const ev = {
+      ...e,
+      id: `ev_${++this.seq}`,
+      occurredAt: e.occurredAt ?? new Date(),
+    } as InteractionEvent;
     this.all.push(ev);
     return ev as never;
   }
@@ -80,7 +97,12 @@ export class FakeEvents implements EventStore {
   }
   async list(orgId: string, opts: { types?: string[]; contactId?: string } = {}) {
     const items = this.all
-      .filter((e) => e.orgId === orgId && (!opts.types || opts.types.includes(e.type)) && (!opts.contactId || e.contactId === opts.contactId))
+      .filter(
+        (e) =>
+          e.orgId === orgId &&
+          (!opts.types || opts.types.includes(e.type)) &&
+          (!opts.contactId || e.contactId === opts.contactId),
+      )
       .reverse();
     return { items, nextCursor: null };
   }
@@ -116,7 +138,11 @@ export class FakeMissions implements MissionRepository {
   async list() {
     return [...this.items.values()];
   }
-  async update(_orgId: string, id: string, patch: Partial<Pick<Mission, "status" | "plan" | "report">>) {
+  async update(
+    _orgId: string,
+    id: string,
+    patch: Partial<Pick<Mission, "status" | "plan" | "report">>,
+  ) {
     const cur = this.items.get(id);
     if (!cur) throw new Error("missing mission");
     const next = { ...cur, ...patch };
@@ -129,7 +155,13 @@ export class FakeBots implements Pick<BotRepository, "get" | "getVersion"> {
   constructor(public version: BotVersion | null = makeVersion()) {}
   async get(_orgId: string, id: string): Promise<Bot | null> {
     if (!this.version || id !== this.version.botId) return null;
-    return { id: this.version.botId, orgId: ORG, name: "Sofi", publishedVersionId: this.version.id, createdAt: new Date(0) };
+    return {
+      id: this.version.botId,
+      orgId: ORG,
+      name: "Sofi",
+      publishedVersionId: this.version.id,
+      createdAt: new Date(0),
+    };
   }
   async getVersion(_orgId: string, id: string) {
     return this.version && id === this.version.id ? this.version : null;
@@ -165,7 +197,12 @@ export class FakeConversations implements ConversationRepository {
 export class FakeFacts implements ContactFactRepository {
   items: ContactFact[] = [];
   async add(orgId: string, fact: Omit<ContactFact, "id" | "orgId" | "createdAt">) {
-    const f: ContactFact = { ...fact, id: `fact_${this.items.length + 1}`, orgId, createdAt: new Date(0) };
+    const f: ContactFact = {
+      ...fact,
+      id: `fact_${this.items.length + 1}`,
+      orgId,
+      createdAt: new Date(0),
+    };
     this.items.push(f);
     return f;
   }

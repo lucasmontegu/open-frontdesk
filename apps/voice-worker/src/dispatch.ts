@@ -27,12 +27,15 @@ export function parseDispatchMetadata(raw: unknown): ParsedDispatch {
   } catch {
     return { kind: "inbound" };
   }
-  return json && typeof json === "object" && !Array.isArray(json) ? parseObject(json) : { kind: "inbound" };
+  return json && typeof json === "object" && !Array.isArray(json)
+    ? parseObject(json)
+    : { kind: "inbound" };
 }
 
 function parseObject(obj: object): ParsedDispatch {
   const candidate = obj as Record<string, unknown>;
   // No bot version at all means an inbound dispatch rule; a partial outbound payload is a bug worth failing loudly.
-  if (candidate["botVersionId"] === undefined && candidate["conversationId"] === undefined) return { kind: "inbound" };
+  if (candidate["botVersionId"] === undefined && candidate["conversationId"] === undefined)
+    return { kind: "inbound" };
   return { kind: "outbound", dispatch: OutboundDispatch.parse(candidate) };
 }

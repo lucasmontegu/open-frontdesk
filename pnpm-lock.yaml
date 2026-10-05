@@ -153,6 +153,9 @@ importers:
       '@ofd/agent':
         specifier: workspace:*
         version: link:../../packages/agent
+      '@ofd/channels':
+        specifier: workspace:*
+        version: link:../../packages/channels
       '@ofd/core':
         specifier: workspace:*
         version: link:../../packages/core

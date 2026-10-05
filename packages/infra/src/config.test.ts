@@ -31,7 +31,16 @@ describe("loadConfig", () => {
     }
     expect(err).toBeInstanceOf(ConfigError);
     const msg = (err as Error).message;
-    for (const name of ["REDIS_URL", "LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET", "BETTER_AUTH_SECRET", "PUBLIC_APP_URL", "PORT", "BETTER_AUTH_URL"]) {
+    for (const name of [
+      "REDIS_URL",
+      "LIVEKIT_URL",
+      "LIVEKIT_API_KEY",
+      "LIVEKIT_API_SECRET",
+      "BETTER_AUTH_SECRET",
+      "PUBLIC_APP_URL",
+      "PORT",
+      "BETTER_AUTH_URL",
+    ]) {
       expect(msg).toContain(name);
     }
     expect(msg).not.toContain("DATABASE_URL");

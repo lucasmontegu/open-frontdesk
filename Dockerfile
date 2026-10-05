@@ -36,6 +36,8 @@ CMD ["node", "dist/main.js"]
 
 FROM runtime AS voice-worker
 COPY --from=build --chown=node /out/voice-worker /app
+# Turn detection and noise models are baked into the image so calls never wait on a download.
+RUN node dist/main.js download-files
 CMD ["node", "dist/main.js", "start"]
 
 FROM runtime AS web

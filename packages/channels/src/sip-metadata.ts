@@ -18,7 +18,10 @@ const asE164 = (v: string | undefined): string | null => {
  * sip.phoneNumber (caller), sip.trunkPhoneNumber (number dialed), sip.callID, sip.trunkID.
  * Falls back to the participant identity ("sip_+5491112345678") when attributes are missing.
  */
-export function parseInboundSipMetadata(participant: { identity?: string; attributes?: Record<string, string> | null }): InboundSipInfo {
+export function parseInboundSipMetadata(participant: {
+  identity?: string;
+  attributes?: Record<string, string> | null;
+}): InboundSipInfo {
   const a = participant.attributes ?? {};
   const fromIdentity = /^sip[_-](\+?\d+)$/.exec(participant.identity ?? "")?.[1];
   return {

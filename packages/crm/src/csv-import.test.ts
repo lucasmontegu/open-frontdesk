@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { importContactsCsv, parseAmount, parseDate, type ImportMapping } from "./csv-import.js";
+import { type ImportMapping, importContactsCsv, parseAmount, parseDate } from "./csv-import.js";
 import { FakeContactRepository, FakeObligationRepository } from "./fakes.test-helpers.js";
 
 const mapping: ImportMapping = {
@@ -35,7 +35,13 @@ describe("importContactsCsv", () => {
     expect(c.tags).toEqual(["vip", "mora"]);
     expect(c.attributes).toEqual({ empresa: "ACME" });
     const o = [...obligations.rows.values()][0]!;
-    expect(o).toMatchObject({ kind: "debt", amount: 1234.5, currency: "ARS", stage: "mora_temprana", contactId: c.id });
+    expect(o).toMatchObject({
+      kind: "debt",
+      amount: 1234.5,
+      currency: "ARS",
+      stage: "mora_temprana",
+      contactId: c.id,
+    });
     expect(o.dueAt?.toISOString()).toBe("2026-03-31T00:00:00.000Z");
   });
 

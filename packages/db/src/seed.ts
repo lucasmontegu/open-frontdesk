@@ -9,17 +9,73 @@ export const DEMO_ORG_ID = "org_demo";
 
 const DAY = 86_400_000;
 
-const people: Array<{ name: string; phone: string; tags: string[]; debt?: { days: number; amount: number }; appointmentTomorrowHour?: number }> = [
-  { name: "Lucía Fernández", phone: "+5491145670001", tags: ["paciente"], appointmentTomorrowHour: 9 },
-  { name: "Martín Gómez", phone: "+5491145670002", tags: ["paciente"], appointmentTomorrowHour: 10 },
-  { name: "Camila Rodríguez", phone: "+5491145670003", tags: ["paciente"], appointmentTomorrowHour: 11 },
-  { name: "Joaquín Sosa", phone: "+5491145670004", tags: ["paciente"], appointmentTomorrowHour: 15 },
-  { name: "Valentina Pérez", phone: "+5491145670005", tags: ["deudor"], debt: { days: 30, amount: 85000 } },
-  { name: "Nicolás Acosta", phone: "+5491145670006", tags: ["deudor"], debt: { days: 45, amount: 120000 } },
-  { name: "Florencia Díaz", phone: "+5491145670007", tags: ["deudor"], debt: { days: 60, amount: 210500 } },
-  { name: "Tomás Benítez", phone: "+5491145670008", tags: ["deudor", "moroso"], debt: { days: 90, amount: 450000 } },
-  { name: "Agustina Romero", phone: "+5491145670009", tags: ["deudor"], debt: { days: 90, amount: 38000 } },
-  { name: "Facundo Ibarra", phone: "+5491145670010", tags: ["deudor"], debt: { days: 15, amount: 62000 } },
+const people: Array<{
+  name: string;
+  phone: string;
+  tags: string[];
+  debt?: { days: number; amount: number };
+  appointmentTomorrowHour?: number;
+}> = [
+  {
+    name: "Lucía Fernández",
+    phone: "+5491145670001",
+    tags: ["paciente"],
+    appointmentTomorrowHour: 9,
+  },
+  {
+    name: "Martín Gómez",
+    phone: "+5491145670002",
+    tags: ["paciente"],
+    appointmentTomorrowHour: 10,
+  },
+  {
+    name: "Camila Rodríguez",
+    phone: "+5491145670003",
+    tags: ["paciente"],
+    appointmentTomorrowHour: 11,
+  },
+  {
+    name: "Joaquín Sosa",
+    phone: "+5491145670004",
+    tags: ["paciente"],
+    appointmentTomorrowHour: 15,
+  },
+  {
+    name: "Valentina Pérez",
+    phone: "+5491145670005",
+    tags: ["deudor"],
+    debt: { days: 30, amount: 85000 },
+  },
+  {
+    name: "Nicolás Acosta",
+    phone: "+5491145670006",
+    tags: ["deudor"],
+    debt: { days: 45, amount: 120000 },
+  },
+  {
+    name: "Florencia Díaz",
+    phone: "+5491145670007",
+    tags: ["deudor"],
+    debt: { days: 60, amount: 210500 },
+  },
+  {
+    name: "Tomás Benítez",
+    phone: "+5491145670008",
+    tags: ["deudor", "moroso"],
+    debt: { days: 90, amount: 450000 },
+  },
+  {
+    name: "Agustina Romero",
+    phone: "+5491145670009",
+    tags: ["deudor"],
+    debt: { days: 90, amount: 38000 },
+  },
+  {
+    name: "Facundo Ibarra",
+    phone: "+5491145670010",
+    tags: ["deudor"],
+    debt: { days: 15, amount: 62000 },
+  },
 ];
 
 const docs = [
@@ -41,7 +97,10 @@ const docs = [
 ];
 
 /** Deletes and recreates the demo org's data, so running it twice yields the same result. */
-export async function seedDemo(db: Db, orgId = DEMO_ORG_ID): Promise<{ contacts: number; obligations: number; docs: number }> {
+export async function seedDemo(
+  db: Db,
+  orgId = DEMO_ORG_ID,
+): Promise<{ contacts: number; obligations: number; docs: number }> {
   await db.transaction(async (tx) => {
     for (const table of [knowledgeDocs, missions, conversations, portfolios, contacts]) {
       await tx.delete(table).where(eq(table.orgId, orgId));
@@ -49,7 +108,11 @@ export async function seedDemo(db: Db, orgId = DEMO_ORG_ID): Promise<{ contacts:
   });
 
   const repos = createRepositories(db);
-  const clinic = await repos.portfolios.create(orgId, { name: "Clínica: turnos de mañana", owner: "Clínica Demo", rule: { stages: ["scheduled"] } });
+  const clinic = await repos.portfolios.create(orgId, {
+    name: "Clínica: turnos de mañana",
+    owner: "Clínica Demo",
+    rule: { stages: ["scheduled"] },
+  });
   const collections = await repos.portfolios.create(orgId, {
     name: "Cobranzas: mora desde 30 días",
     owner: "Acreedor Demo S.A.",
@@ -69,11 +132,33 @@ export async function seedDemo(db: Db, orgId = DEMO_ORG_ID): Promise<{ contacts:
       tags: p.tags,
       attributes: { ciudad: "Buenos Aires" },
     });
-    const make = async (kind: ObligationKind, portfolioId: string, stage: string, dueAt: Date, amount: number | null) => {
-      await repos.obligations.upsert(orgId, { contactId: contact.id, portfolioId, kind, stage, amount, currency: amount === null ? null : "ARS", dueAt, attributes: {} });
+    const make = async (
+      kind: ObligationKind,
+      portfolioId: string,
+      stage: string,
+      dueAt: Date,
+      amount: number | null,
+    ) => {
+      await repos.obligations.upsert(orgId, {
+        contactId: contact.id,
+        portfolioId,
+        kind,
+        stage,
+        amount,
+        currency: amount === null ? null : "ARS",
+        dueAt,
+        attributes: {},
+      });
       obligationCount++;
     };
-    if (p.debt) await make("debt", collections.id, "overdue", new Date(now - p.debt.days * DAY), p.debt.amount);
+    if (p.debt)
+      await make(
+        "debt",
+        collections.id,
+        "overdue",
+        new Date(now - p.debt.days * DAY),
+        p.debt.amount,
+      );
     if (p.appointmentTomorrowHour !== undefined) {
       const at = new Date(tomorrow);
       at.setUTCHours(p.appointmentTomorrowHour + 3, 0, 0, 0); // ART is UTC-3

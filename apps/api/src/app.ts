@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { Container } from "./container.js";
-import { body, errorHandler } from "./http/errors.js";
 import type { AppEnv } from "./http/env.js";
+import { body, errorHandler } from "./http/errors.js";
 import { authenticate, jsonLogging, requestId } from "./http/middleware.js";
 import { createMastraHandler } from "./mastra.js";
 import { botRoutes } from "./routes/bots.js";

@@ -18,10 +18,16 @@ const asE164 = (v: string | undefined | null): string | null => {
  * sip.trunkPhoneNumber (dialed number), falling back to the identity "sip_+5491112345678".
  * (Same contract as parseInboundSipMetadata in @ofd/channels, which this app does not depend on.)
  */
-export function parseSipParticipant(participant: { identity?: string; attributes?: Record<string, string> | null }): InboundSipInfo {
+export function parseSipParticipant(participant: {
+  identity?: string;
+  attributes?: Record<string, string> | null;
+}): InboundSipInfo {
   const a = participant.attributes ?? {};
   const fromIdentity = /^sip[_-](\+?\d+)$/.exec(participant.identity ?? "")?.[1];
-  return { callerPhone: asE164(a["sip.phoneNumber"]) ?? asE164(fromIdentity), calledNumber: asE164(a["sip.trunkPhoneNumber"]) };
+  return {
+    callerPhone: asE164(a["sip.phoneNumber"]) ?? asE164(fromIdentity),
+    calledNumber: asE164(a["sip.trunkPhoneNumber"]),
+  };
 }
 
 /** Argentine mobiles appear both as +54 9 11... and +54 11...; carriers are inconsistent, so try both. */
@@ -32,7 +38,11 @@ export function phoneCandidates(e164: string): string[] {
   return out;
 }
 
-export async function findContactByPhone(contacts: Pick<ContactRepository, "findByIdentity">, orgId: string, phone: string): Promise<Contact | null> {
+export async function findContactByPhone(
+  contacts: Pick<ContactRepository, "findByIdentity">,
+  orgId: string,
+  phone: string,
+): Promise<Contact | null> {
   for (const value of phoneCandidates(phone)) {
     for (const kind of ["phone", "whatsapp"] as const) {
       const found = await contacts.findByIdentity(orgId, { kind, value });
@@ -51,9 +61,13 @@ export interface InboundRoute {
  * Which org and bot answer a number.
  * TODO: route by dialed number (a table of number -> org + bot version); for now one bot answers everything.
  */
-export function routeInbound(env: Record<string, string | undefined>, _calledNumber: string | null): InboundRoute {
+export function routeInbound(
+  env: Record<string, string | undefined>,
+  _calledNumber: string | null,
+): InboundRoute {
   const orgId = env["OFD_INBOUND_ORG_ID"];
   const botVersionId = env["OFD_INBOUND_BOT_VERSION_ID"];
-  if (!orgId || !botVersionId) throw new Error("Inbound calls need OFD_INBOUND_ORG_ID and OFD_INBOUND_BOT_VERSION_ID");
+  if (!orgId || !botVersionId)
+    throw new Error("Inbound calls need OFD_INBOUND_ORG_ID and OFD_INBOUND_BOT_VERSION_ID");
   return { orgId, botVersionId };
 }

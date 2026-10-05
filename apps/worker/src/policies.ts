@@ -12,7 +12,9 @@ export function createPolicyResolver(deps: {
 }): (ctx: ToolCallContext) => Promise<PolicyRule[]> {
   const packPolicies = deps.packPolicies ?? ((id: string) => getBuiltinPack(id)?.policies ?? []);
   return async (ctx) => {
-    const version = ctx.botVersionId ? await deps.bots.getVersion(ctx.orgId, ctx.botVersionId) : null;
+    const version = ctx.botVersionId
+      ? await deps.bots.getVersion(ctx.orgId, ctx.botVersionId)
+      : null;
     const org = await deps.policies.rulesFor(ctx.orgId, version?.botId ?? null);
     const pack = version?.config.pack ? packPolicies(version.config.pack.id) : [];
     const seen = new Set(org.map((r) => r.id));

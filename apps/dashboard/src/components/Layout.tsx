@@ -27,7 +27,12 @@ export function Layout() {
     <div className="min-h-screen md:flex">
       <header className="flex items-center justify-between border-b border-line bg-surface px-4 py-2 md:hidden">
         <span className="font-semibold">{t.appName}</span>
-        <Button variant="secondary" aria-expanded={open} aria-controls="sidebar" onClick={() => setOpen((o) => !o)}>
+        <Button
+          variant="secondary"
+          aria-expanded={open}
+          aria-controls="sidebar"
+          onClick={() => setOpen((o) => !o)}
+        >
           {t.nav.menu}
         </Button>
       </header>
@@ -47,7 +52,10 @@ export function Layout() {
               onClick={() => setOpen(false)}
               activeOptions={{ exact: i.to === "/" }}
               className="rounded-md px-3 py-2 text-sm text-muted hover:bg-line/50 hover:text-fg"
-              activeProps={{ className: "bg-accent/15 !text-accent font-medium", "aria-current": "page" }}
+              activeProps={{
+                className: "bg-accent/15 !text-accent font-medium",
+                "aria-current": "page",
+              }}
             >
               {i.label}
             </Link>

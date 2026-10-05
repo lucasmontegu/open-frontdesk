@@ -42,7 +42,8 @@ interface RequestOptions {
   body?: unknown;
 }
 
-const fallbackMessage = (code: string): string => (t.errors as Record<string, string>)[code] ?? t.errors.unknown;
+const fallbackMessage = (code: string): string =>
+  (t.errors as Record<string, string>)[code] ?? t.errors.unknown;
 
 export function buildUrl(path: string, query?: Query): string {
   const params = new URLSearchParams();
@@ -128,9 +129,11 @@ export interface ContactsQuery {
 
 export const api = {
   contacts: {
-    list: async (q: ContactsQuery) => toPage<ContactDto>(await request("/contacts", { query: { ...q } })),
+    list: async (q: ContactsQuery) =>
+      toPage<ContactDto>(await request("/contacts", { query: { ...q } })),
     get: (id: string) => request<ProfileDto>(`/contacts/${id}`),
-    import: (csv: string) => request<ImportResult>("/contacts/import", { method: "POST", body: { csv } }),
+    import: (csv: string) =>
+      request<ImportResult>("/contacts/import", { method: "POST", body: { csv } }),
   },
   portfolios: {
     list: async () => toPage<PortfolioDto>(await request("/portfolios")),
@@ -159,7 +162,8 @@ export const api = {
   events: {
     list: async (q: { cursor?: string; limit?: number; type?: string; contactId?: string }) =>
       toPage<EventDto>(await request("/events", { query: q })),
-    forConversation: async (id: string) => toPage<EventDto>(await request(`/conversations/${id}/events`)),
+    forConversation: async (id: string) =>
+      toPage<EventDto>(await request(`/conversations/${id}/events`)),
   },
 };
 

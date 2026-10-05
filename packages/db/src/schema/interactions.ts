@@ -1,5 +1,4 @@
-import type { EventType, MissionPlan, MissionStatus } from "@ofd/core";
-import type { MissionReport } from "@ofd/core";
+import type { EventType, MissionPlan, MissionReport, MissionStatus } from "@ofd/core";
 import { bigserial, index, jsonb, pgTable, text, timestamp, vector } from "drizzle-orm/pg-core";
 
 const ts = (name: string) => timestamp(name, { withTimezone: true, mode: "date" });

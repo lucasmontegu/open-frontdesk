@@ -3,7 +3,11 @@ import { createAuth } from "./auth.js";
 import { migrateAuth } from "./migrate.js";
 
 const databaseUrl = process.env.DATABASE_URL ?? "postgres://ofd:ofd@localhost:5432/ofd";
-const config = { databaseUrl, secret: "test-secret-test-secret-test-secret", baseURL: "http://localhost:3000" };
+const config = {
+  databaseUrl,
+  secret: "test-secret-test-secret-test-secret",
+  baseURL: "http://localhost:3000",
+};
 
 describe("auth", () => {
   it("migrates, signs up and creates an organization owned by the creator", async () => {

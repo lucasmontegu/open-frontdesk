@@ -1,5 +1,5 @@
-import type { Redis } from "ioredis";
 import type { HoldStore } from "@ofd/core";
+import type { Redis } from "ioredis";
 
 // Delete only when the stored holder matches, atomically.
 const RELEASE_SCRIPT = `
@@ -16,7 +16,13 @@ export class RedisHoldStore implements HoldStore {
   ) {}
 
   async tryHold(key: string, holder: string, ttlSeconds: number): Promise<boolean> {
-    const res = await this.redis.set(this.prefix + key, holder, "EX", Math.max(1, Math.ceil(ttlSeconds)), "NX");
+    const res = await this.redis.set(
+      this.prefix + key,
+      holder,
+      "EX",
+      Math.max(1, Math.ceil(ttlSeconds)),
+      "NX",
+    );
     return res === "OK";
   }
 

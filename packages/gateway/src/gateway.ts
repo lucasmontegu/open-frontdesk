@@ -1,8 +1,8 @@
 import type {
   Clock,
+  EventPayloads,
   EventStore,
   EventType,
-  EventPayloads,
   PolicyContext,
   PolicyRule,
   ToolCallContext,
@@ -19,7 +19,10 @@ export interface ToolGatewayOptions {
   tools: ToolDefinition[];
   policies: (ctx: ToolCallContext) => Promise<PolicyRule[]>;
   events: EventStore;
-  contacts?: (orgId: string, contactId: string) => Promise<{ doNotCall: boolean; attributes: Record<string, unknown> } | null>;
+  contacts?: (
+    orgId: string,
+    contactId: string,
+  ) => Promise<{ doNotCall: boolean; attributes: Record<string, unknown> } | null>;
   clock?: Clock;
   timezone?: string;
 }
@@ -71,7 +74,12 @@ export function createToolGateway(opts: ToolGatewayOptions): ToolGateway {
       traceId: ctx.traceId,
     });
 
-  const refuse = async (ctx: ToolCallContext, tool: string, ruleId: string, reason: string): Promise<ToolResult> => {
+  const refuse = async (
+    ctx: ToolCallContext,
+    tool: string,
+    ruleId: string,
+    reason: string,
+  ): Promise<ToolResult> => {
     await record(ctx, "tool.refused", { tool, rule: ruleId, reason });
     return { ok: false, refused: true, ruleId, reason };
   };
@@ -100,12 +108,19 @@ export function createToolGateway(opts: ToolGatewayOptions): ToolGateway {
       // Anything that throws before the decision is recorded must still refuse, never act.
       let decision: ReturnType<typeof evaluatePolicy>;
       try {
-        const contact = ctx.contactId && opts.contacts ? await opts.contacts(ctx.orgId, ctx.contactId) : null;
+        const contact =
+          ctx.contactId && opts.contacts ? await opts.contacts(ctx.orgId, ctx.contactId) : null;
         const policyCtx: PolicyContext = {
           tool: { name: tool.name, effect: tool.effect, input: parsed.data },
-          actor: { kind: ctx.actor.kind, id: ctx.actor.id, ...(ctx.actor.kind === "user" ? { role: ctx.actor.role } : {}) },
+          actor: {
+            kind: ctx.actor.kind,
+            id: ctx.actor.id,
+            ...(ctx.actor.kind === "user" ? { role: ctx.actor.role } : {}),
+          },
           bot: ctx.autonomy === null ? null : { autonomy: ctx.autonomy },
-          contact: contact ? { doNotCall: contact.doNotCall, attributes: contact.attributes } : null,
+          contact: contact
+            ? { doNotCall: contact.doNotCall, attributes: contact.attributes }
+            : null,
           now: localTime(clock.now(), timezone),
           initiator: ctx.initiator,
         };
@@ -134,8 +149,15 @@ export function createToolGateway(opts: ToolGatewayOptions): ToolGateway {
 
       const started = Date.now();
       try {
-        const output = await withTimeout(() => tool.handler(parsed.data, ctx), tool.timeoutMs ?? DEFAULT_TIMEOUT_MS);
-        await record(ctx, "tool.completed", { tool: toolName, output, durationMs: Date.now() - started });
+        const output = await withTimeout(
+          () => tool.handler(parsed.data, ctx),
+          tool.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+        );
+        await record(ctx, "tool.completed", {
+          tool: toolName,
+          output,
+          durationMs: Date.now() - started,
+        });
         return { ok: true, output };
       } catch (e) {
         const error = e instanceof Error ? e.message : String(e);

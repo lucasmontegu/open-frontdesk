@@ -8,7 +8,11 @@ import { clampLimit, decodeCursor, encodeCursor, toPage } from "./util.js";
 
 export type ContactRow = typeof contacts.$inferSelect;
 
-export async function hydrateContacts(db: Db, orgId: string, rows: ContactRow[]): Promise<Contact[]> {
+export async function hydrateContacts(
+  db: Db,
+  orgId: string,
+  rows: ContactRow[],
+): Promise<Contact[]> {
   if (rows.length === 0) return [];
   const ids = rows.map((r) => r.id);
   const idents = await db
@@ -41,7 +45,13 @@ export class PgContactRepository implements ContactRepository {
 
   async create(
     orgId: string,
-    input: { displayName: string; identities: ContactIdentity[]; attributes?: Record<string, unknown>; tags?: string[]; doNotCall?: boolean },
+    input: {
+      displayName: string;
+      identities: ContactIdentity[];
+      attributes?: Record<string, unknown>;
+      tags?: string[];
+      doNotCall?: boolean;
+    },
   ): Promise<Contact> {
     const id = newId("ct");
     try {
@@ -57,12 +67,20 @@ export class PgContactRepository implements ContactRepository {
         });
         if (input.identities.length > 0) {
           await tx.insert(contactIdentities).values(
-            input.identities.map((i) => ({ id: newId("ci"), orgId, contactId: id, kind: i.kind, value: i.value, source: i.source ?? null })),
+            input.identities.map((i) => ({
+              id: newId("ci"),
+              orgId,
+              contactId: id,
+              kind: i.kind,
+              value: i.value,
+              source: i.source ?? null,
+            })),
           );
         }
       });
     } catch (err) {
-      if ((err as { code?: string }).code === "23505") throw new DomainError("conflict", "an identity already belongs to another contact");
+      if ((err as { code?: string }).code === "23505")
+        throw new DomainError("conflict", "an identity already belongs to another contact");
       throw err;
     }
     const created = await this.get(orgId, id);
@@ -71,17 +89,28 @@ export class PgContactRepository implements ContactRepository {
   }
 
   async get(orgId: string, id: string): Promise<Contact | null> {
-    const rows = await this.db.select().from(contacts).where(and(eq(contacts.orgId, orgId), eq(contacts.id, id))).limit(1);
+    const rows = await this.db
+      .select()
+      .from(contacts)
+      .where(and(eq(contacts.orgId, orgId), eq(contacts.id, id)))
+      .limit(1);
     return (await hydrateContacts(this.db, orgId, rows))[0] ?? null;
   }
 
-  async findByIdentity(orgId: string, identity: Pick<ContactIdentity, "kind" | "value">): Promise<Contact | null> {
+  async findByIdentity(
+    orgId: string,
+    identity: Pick<ContactIdentity, "kind" | "value">,
+  ): Promise<Contact | null> {
     const rows = await this.db
       .select({ contact: contacts })
       .from(contactIdentities)
       .innerJoin(contacts, eq(contacts.id, contactIdentities.contactId))
       .where(
-        and(eq(contactIdentities.orgId, orgId), eq(contactIdentities.kind, identity.kind), eq(contactIdentities.value, identity.value)),
+        and(
+          eq(contactIdentities.orgId, orgId),
+          eq(contactIdentities.kind, identity.kind),
+          eq(contactIdentities.value, identity.value),
+        ),
       )
       .limit(1);
     const row = rows[0];
@@ -102,7 +131,10 @@ export class PgContactRepository implements ContactRepository {
     return (await hydrateContacts(this.db, orgId, rows))[0] as Contact;
   }
 
-  async list(orgId: string, opts: { limit?: number; cursor?: string | null; search?: string } = {}): Promise<Page<Contact>> {
+  async list(
+    orgId: string,
+    opts: { limit?: number; cursor?: string | null; search?: string } = {},
+  ): Promise<Page<Contact>> {
     const limit = clampLimit(opts.limit);
     const cur = decodeCursor(opts.cursor, 2);
     const conds = [eq(contacts.orgId, orgId)];
@@ -120,7 +152,12 @@ export class PgContactRepository implements ContactRepository {
     if (cur) {
       const [ts, id] = cur as [string, string];
       const at = new Date(Number(ts));
-      conds.push(or(lt(contacts.createdAt, at), and(eq(contacts.createdAt, at), lt(contacts.id, id))) as never);
+      conds.push(
+        or(
+          lt(contacts.createdAt, at),
+          and(eq(contacts.createdAt, at), lt(contacts.id, id)),
+        ) as never,
+      );
     }
     const rows = await this.db
       .select()
@@ -129,6 +166,9 @@ export class PgContactRepository implements ContactRepository {
       .orderBy(desc(contacts.createdAt), desc(contacts.id))
       .limit(limit + 1);
     const page = toPage(rows, limit, (r) => encodeCursor(r.createdAt.getTime(), r.id));
-    return { items: await hydrateContacts(this.db, orgId, page.items), nextCursor: page.nextCursor };
+    return {
+      items: await hydrateContacts(this.db, orgId, page.items),
+      nextCursor: page.nextCursor,
+    };
   }
 }

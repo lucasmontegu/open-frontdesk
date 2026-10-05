@@ -1,7 +1,7 @@
 import type { BotVersion, PolicyRule } from "@ofd/core";
-import type { EvalScenario } from "@ofd/packs";
 import type { Repositories } from "@ofd/db";
 import { runReleaseGate } from "@ofd/evals";
+import type { EvalScenario } from "@ofd/packs";
 
 export interface ReleaseGateInput {
   orgId: string;
@@ -43,6 +43,12 @@ export function createReleaseGate(repos: Repositories): ReleaseGate {
       summary: result.summary,
       failures: result.failures,
     });
-    return { id: row.id, passed: result.passed, score: result.score, summary: result.summary, failures: result.failures };
+    return {
+      id: row.id,
+      passed: result.passed,
+      score: result.score,
+      summary: result.summary,
+      failures: result.failures,
+    };
   };
 }

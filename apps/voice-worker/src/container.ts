@@ -1,11 +1,23 @@
-import { createBuiltinTools, createFrontDeskAgent, createMemory, InMemoryCalendar } from "@ofd/agent";
+import * as cartesia from "@livekit/agents-plugin-cartesia";
+import * as deepgram from "@livekit/agents-plugin-deepgram";
+import {
+  createBuiltinTools,
+  createFrontDeskAgent,
+  createMemory,
+  InMemoryCalendar,
+} from "@ofd/agent";
 import { ConsoleMessagingProvider, KapsoWhatsAppProvider } from "@ofd/channels";
 import type { JobName, JobQueue, MessagingProvider } from "@ofd/core";
 import { createDb, createRepositories } from "@ofd/db";
 import { createToolGateway } from "@ofd/gateway";
-import { createLogger, loadConfig, PgBossJobQueue, RedisHoldStore, type Config, type Logger } from "@ofd/infra";
-import * as cartesia from "@livekit/agents-plugin-cartesia";
-import * as deepgram from "@livekit/agents-plugin-deepgram";
+import {
+  type Config,
+  createLogger,
+  type Logger,
+  loadConfig,
+  PgBossJobQueue,
+  RedisHoldStore,
+} from "@ofd/infra";
 import type { CallDeps } from "./call.js";
 import { createPolicyResolver } from "./policies.js";
 import { connectRedis } from "./redis.js";
@@ -26,7 +38,11 @@ class LazyJobQueue implements JobQueue {
   private starting: Promise<void> | null = null;
   constructor(private readonly queue: PgBossJobQueue) {}
 
-  async enqueue<T extends object>(name: JobName, data: T, opts?: { startAfterSeconds?: number; singletonKey?: string }): Promise<string> {
+  async enqueue<T extends object>(
+    name: JobName,
+    data: T,
+    opts?: { startAfterSeconds?: number; singletonKey?: string },
+  ): Promise<string> {
     this.starting ??= this.queue.start();
     await this.starting;
     return this.queue.enqueue(name, data, opts);
@@ -38,7 +54,9 @@ class LazyJobQueue implements JobQueue {
 }
 
 /** The only place in the voice worker that creates clients. */
-export async function createContainer(env: Record<string, string | undefined> = process.env): Promise<Container> {
+export async function createContainer(
+  env: Record<string, string | undefined> = process.env,
+): Promise<Container> {
   const config = loadConfig(env);
   const log = createLogger(config, "ofd-voice-worker");
 
@@ -46,10 +64,19 @@ export async function createContainer(env: Record<string, string | undefined> = 
   const repos = createRepositories(db);
   const redis = await connectRedis(config.redisUrl);
   const holds = new RedisHoldStore(redis.client);
-  const jobs = new LazyJobQueue(new PgBossJobQueue({ connectionString: config.databaseUrl, onError: (err) => log.error({ err: err.message }, "pg-boss error") }));
+  const jobs = new LazyJobQueue(
+    new PgBossJobQueue({
+      connectionString: config.databaseUrl,
+      onError: (err) => log.error({ err: err.message }, "pg-boss error"),
+    }),
+  );
   const messaging: MessagingProvider =
     config.kapso.apiKey && config.kapso.baseUrl && env["KAPSO_PHONE_NUMBER_ID"]
-      ? new KapsoWhatsAppProvider({ baseUrl: config.kapso.baseUrl, apiKey: config.kapso.apiKey, phoneNumberId: env["KAPSO_PHONE_NUMBER_ID"] })
+      ? new KapsoWhatsAppProvider({
+          baseUrl: config.kapso.baseUrl,
+          apiKey: config.kapso.apiKey,
+          phoneNumberId: env["KAPSO_PHONE_NUMBER_ID"],
+        })
       : new ConsoleMessagingProvider(log);
   // Memory is scoped by contact (resourceId) and shared with every other channel.
   const memory = createMemory({ connectionString: config.databaseUrl });
@@ -84,16 +111,34 @@ export async function createContainer(env: Record<string, string | undefined> = 
     events: repos.events,
     env,
     buildAgent: ({ version, profile, toolContext }) =>
-      createFrontDeskAgent({ botVersion: version, gateway, toolContext: { ...toolContext, actor: { ...toolContext.actor } }, profile, memory, events: repos.events }),
+      createFrontDeskAgent({
+        botVersion: version,
+        gateway,
+        toolContext: { ...toolContext, actor: { ...toolContext.actor } },
+        profile,
+        memory,
+        events: repos.events,
+      }),
   };
 
-  if (!config.openaiApiKey) log.warn({}, "OPENAI_API_KEY is not set: the agent cannot generate replies");
+  if (!config.openaiApiKey)
+    log.warn({}, "OPENAI_API_KEY is not set: the agent cannot generate replies");
 
   const voice = createVoiceComponents(
     { deepgramApiKey: config.deepgramApiKey, cartesiaApiKey: config.cartesiaApiKey },
     {
-      deepgramStt: (o) => new deepgram.STT({ model: o.model, language: o.language, ...(o.apiKey ? { apiKey: o.apiKey } : {}) }),
-      cartesiaTts: (o) => new cartesia.TTS({ model: o.model, language: o.language, ...(o.apiKey ? { apiKey: o.apiKey } : {}) }),
+      deepgramStt: (o) =>
+        new deepgram.STT({
+          model: o.model,
+          language: o.language,
+          ...(o.apiKey ? { apiKey: o.apiKey } : {}),
+        }),
+      cartesiaTts: (o) =>
+        new cartesia.TTS({
+          model: o.model,
+          language: o.language,
+          ...(o.apiKey ? { apiKey: o.apiKey } : {}),
+        }),
     },
   );
 

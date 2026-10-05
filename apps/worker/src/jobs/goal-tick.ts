@@ -1,5 +1,5 @@
-import { z } from "zod";
 import type { Clock, GoalSpec } from "@ofd/core";
+import { z } from "zod";
 import { type Log, silentLog, systemClock } from "../deps.js";
 
 export const GoalTickJob = z.object({ orgId: z.string().min(1), goalId: z.string().min(1) });
@@ -19,7 +19,11 @@ export interface GoalState {
 
 export interface GoalStore {
   get(orgId: string, goalId: string): Promise<GoalState | null>;
-  save(orgId: string, goalId: string, patch: Partial<Pick<GoalState, "enabled" | "lastTickAt" | "consecutiveFailures">>): Promise<void>;
+  save(
+    orgId: string,
+    goalId: string,
+    patch: Partial<Pick<GoalState, "enabled" | "lastTickAt" | "consecutiveFailures">>,
+  ): Promise<void>;
 }
 
 export interface GoalTickDeps {
@@ -33,7 +37,15 @@ export interface GoalTickDeps {
   log?: Log;
 }
 
-export type GoalTickOutcome = "not_configured" | "not_found" | "disabled" | "expired" | "too_soon" | "ran" | "failed" | "auto_disabled";
+export type GoalTickOutcome =
+  | "not_configured"
+  | "not_found"
+  | "disabled"
+  | "expired"
+  | "too_soon"
+  | "ran"
+  | "failed"
+  | "auto_disabled";
 
 export async function goalTick(deps: GoalTickDeps, data: unknown): Promise<GoalTickOutcome> {
   const { orgId, goalId } = GoalTickJob.parse(data);
@@ -51,7 +63,11 @@ export async function goalTick(deps: GoalTickDeps, data: unknown): Promise<GoalT
     return "expired";
   }
   // Safety limit: never tick more often than minIntervalMinutes, whatever the scheduler does.
-  if (goal.lastTickAt && now.getTime() - goal.lastTickAt.getTime() < goal.spec.minIntervalMinutes * 60_000) return "too_soon";
+  if (
+    goal.lastTickAt &&
+    now.getTime() - goal.lastTickAt.getTime() < goal.spec.minIntervalMinutes * 60_000
+  )
+    return "too_soon";
 
   try {
     await deps.runTick?.(goal);
@@ -60,8 +76,15 @@ export async function goalTick(deps: GoalTickDeps, data: unknown): Promise<GoalT
   } catch (err) {
     const failures = goal.consecutiveFailures + 1;
     const disable = failures >= goal.spec.maxConsecutiveFailures;
-    log.error({ goalId, failures, err: err instanceof Error ? err.message : String(err) }, "goal.tick failed");
-    await deps.goals.save(orgId, goalId, { lastTickAt: now, consecutiveFailures: failures, ...(disable ? { enabled: false } : {}) });
+    log.error(
+      { goalId, failures, err: err instanceof Error ? err.message : String(err) },
+      "goal.tick failed",
+    );
+    await deps.goals.save(orgId, goalId, {
+      lastTickAt: now,
+      consecutiveFailures: failures,
+      ...(disable ? { enabled: false } : {}),
+    });
     return disable ? "auto_disabled" : "failed";
   }
 }

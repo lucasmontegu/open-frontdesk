@@ -1,14 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { findContactByPhone, parseSipParticipant, phoneCandidates, routeInbound } from "./inbound.js";
+import {
+  findContactByPhone,
+  parseSipParticipant,
+  phoneCandidates,
+  routeInbound,
+} from "./inbound.js";
 import { makeContact, ORG } from "./test-fakes.js";
 
 describe("inbound SIP", () => {
   it("reads caller and dialed number from participant attributes", () => {
-    expect(parseSipParticipant({ identity: "sip_x", attributes: { "sip.phoneNumber": "+5491112345678", "sip.trunkPhoneNumber": "541143210000" } })).toEqual({ callerPhone: "+5491112345678", calledNumber: "+541143210000" });
+    expect(
+      parseSipParticipant({
+        identity: "sip_x",
+        attributes: { "sip.phoneNumber": "+5491112345678", "sip.trunkPhoneNumber": "541143210000" },
+      }),
+    ).toEqual({ callerPhone: "+5491112345678", calledNumber: "+541143210000" });
   });
 
   it("falls back to the participant identity", () => {
-    expect(parseSipParticipant({ identity: "sip_+5491112345678" }).callerPhone).toBe("+5491112345678");
+    expect(parseSipParticipant({ identity: "sip_+5491112345678" }).callerPhone).toBe(
+      "+5491112345678",
+    );
     expect(parseSipParticipant({ identity: "someone" }).callerPhone).toBeNull();
   });
 
@@ -29,11 +41,15 @@ describe("inbound SIP", () => {
     };
     expect((await findContactByPhone(contacts, ORG, "+5491112345678"))?.id).toBe("c1");
     expect(asked[0]).toBe("phone:+5491112345678");
-    expect(await findContactByPhone({ findByIdentity: async () => null }, ORG, "+5491100000000")).toBeNull();
+    expect(
+      await findContactByPhone({ findByIdentity: async () => null }, ORG, "+5491100000000"),
+    ).toBeNull();
   });
 
   it("routes by env until number routing exists", () => {
-    expect(routeInbound({ OFD_INBOUND_ORG_ID: "o", OFD_INBOUND_BOT_VERSION_ID: "bv" }, "+54114")).toEqual({ orgId: "o", botVersionId: "bv" });
+    expect(
+      routeInbound({ OFD_INBOUND_ORG_ID: "o", OFD_INBOUND_BOT_VERSION_ID: "bv" }, "+54114"),
+    ).toEqual({ orgId: "o", botVersionId: "bv" });
     expect(() => routeInbound({}, null)).toThrow(/OFD_INBOUND/);
   });
 });

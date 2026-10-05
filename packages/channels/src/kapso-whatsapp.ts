@@ -17,7 +17,12 @@ export class KapsoWhatsAppProvider implements MessagingProvider {
     this.doFetch = opts.fetch ?? ((url, init) => fetch(url, init));
   }
 
-  async send(input: { orgId: string; to: string; text: string; conversationId: string }): Promise<{ providerMessageId: string }> {
+  async send(input: {
+    orgId: string;
+    to: string;
+    text: string;
+    conversationId: string;
+  }): Promise<{ providerMessageId: string }> {
     // TODO verify against vendor API: Kapso path, version segment and X-API-Key auth header.
     const url = `${this.opts.baseUrl.replace(/\/$/, "")}/meta/whatsapp/v24.0/${this.opts.phoneNumberId}/messages`;
     const res = await this.doFetch(url, {
@@ -32,7 +37,8 @@ export class KapsoWhatsAppProvider implements MessagingProvider {
         text: { body: input.text },
       }),
     });
-    if (!res.ok) throw new Error(`Kapso send failed: ${res.status} ${(await res.text()).slice(0, 200)}`);
+    if (!res.ok)
+      throw new Error(`Kapso send failed: ${res.status} ${(await res.text()).slice(0, 200)}`);
     const body = (await res.json()) as { messages?: Array<{ id: string }> };
     const id = body.messages?.[0]?.id;
     if (!id) throw new Error("Kapso send failed: response has no message id");

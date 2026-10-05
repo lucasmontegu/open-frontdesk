@@ -1,5 +1,15 @@
 import type { IdentityKind, ObligationKind, PortfolioRule } from "@ofd/core";
-import { boolean, index, jsonb, numeric, pgTable, real, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  jsonb,
+  numeric,
+  pgTable,
+  real,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 
 const ts = (name: string) => timestamp(name, { withTimezone: true, mode: "date" });
 

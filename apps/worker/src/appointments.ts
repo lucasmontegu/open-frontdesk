@@ -24,7 +24,10 @@ interface Row {
  * Appointments (obligations of kind 'appointment') whose due_at falls in [from, to).
  * No repository port lists obligations by date, so the worker queries the table directly.
  */
-export function createAppointmentsLoader(sql: Sql, contacts: Pick<ContactRepository, "get">): AppointmentsLoader {
+export function createAppointmentsLoader(
+  sql: Sql,
+  contacts: Pick<ContactRepository, "get">,
+): AppointmentsLoader {
   return async (orgId, { from, to }) => {
     const rows = (await sql`
       select id, contact_id, portfolio_id, kind, stage, amount, currency, due_at, attributes, created_at, updated_at
@@ -36,7 +39,8 @@ export function createAppointmentsLoader(sql: Sql, contacts: Pick<ContactReposit
     const byContact = new Map<string, Contact | null>();
     const out: Array<{ contact: Contact; obligation: Obligation }> = [];
     for (const r of rows) {
-      if (!byContact.has(r.contact_id)) byContact.set(r.contact_id, await contacts.get(orgId, r.contact_id));
+      if (!byContact.has(r.contact_id))
+        byContact.set(r.contact_id, await contacts.get(orgId, r.contact_id));
       const contact = byContact.get(r.contact_id);
       if (!contact) continue;
       out.push({

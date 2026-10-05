@@ -44,10 +44,15 @@ export function codeFromStatus(status: number): ApiErrorCode {
  * Maps a failed HTTP response to an ApiError. `fallbackMessage(code)` supplies the
  * user-facing text when the server did not send one.
  */
-export function mapError(status: number, body: unknown, fallbackMessage: (code: string) => string): ApiError {
+export function mapError(
+  status: number,
+  body: unknown,
+  fallbackMessage: (code: string) => string,
+): ApiError {
   const err = (body as { error?: { code?: unknown; message?: unknown } } | null)?.error;
   const code = typeof err?.code === "string" ? err.code : codeFromStatus(status);
-  const serverMessage = typeof err?.message === "string" && err.message.length > 0 ? err.message : null;
+  const serverMessage =
+    typeof err?.message === "string" && err.message.length > 0 ? err.message : null;
   const known = KNOWN.has(code) ? code : codeFromStatus(status);
   return new ApiError(status, code, serverMessage ?? fallbackMessage(known), body);
 }

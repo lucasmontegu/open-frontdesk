@@ -1,6 +1,6 @@
-import { z } from "zod";
-import type { BotRepository, EventStore, JobQueue, MissionRepository } from "@ofd/core";
 import type { MissionPlanner } from "@ofd/agent";
+import type { BotRepository, EventStore, JobQueue, MissionRepository } from "@ofd/core";
+import { z } from "zod";
 import { appendSystemEvent, type Log, PermanentJobError, silentLog } from "../deps.js";
 
 /** Payload enqueued by the API. The extra fields are informational: the mission row is the source of truth. */
@@ -39,7 +39,9 @@ export async function missionPlan(deps: MissionPlanDeps, data: unknown): Promise
   }
 
   const bot = await deps.bots.get(orgId, mission.botId);
-  const version = bot?.publishedVersionId ? await deps.bots.getVersion(orgId, bot.publishedVersionId) : null;
+  const version = bot?.publishedVersionId
+    ? await deps.bots.getVersion(orgId, bot.publishedVersionId)
+    : null;
   if (!version) {
     await deps.missions.update(orgId, missionId, { status: "failed" });
     throw new PermanentJobError(`bot ${mission.botId} has no published version`);
@@ -53,7 +55,10 @@ export async function missionPlan(deps: MissionPlanDeps, data: unknown): Promise
   });
 
   const needsApproval = version.config.autonomy <= MAX_AUTONOMY_NEEDING_APPROVAL;
-  await deps.missions.update(orgId, missionId, { plan, status: needsApproval ? "awaiting_approval" : "planning" });
+  await deps.missions.update(orgId, missionId, {
+    plan,
+    status: needsApproval ? "awaiting_approval" : "planning",
+  });
   await appendSystemEvent(deps.events, {
     orgId,
     type: "mission.planned",
@@ -61,6 +66,11 @@ export async function missionPlan(deps: MissionPlanDeps, data: unknown): Promise
     botVersionId: version.id,
     actorId: "mission.plan",
   });
-  if (!needsApproval) await deps.jobs.enqueue("mission.execute", { orgId, missionId }, { singletonKey: `execute:${missionId}` });
+  if (!needsApproval)
+    await deps.jobs.enqueue(
+      "mission.execute",
+      { orgId, missionId },
+      { singletonKey: `execute:${missionId}` },
+    );
   log.info({ missionId, targets: plan.targets.length, needsApproval }, "mission planned");
 }

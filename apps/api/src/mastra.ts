@@ -17,7 +17,9 @@ export function createMastraHandler(container: Container) {
   const init = async () => {
     const mastra = new Mastra({ logger: false });
     const app = new Hono();
-    await new MastraServer({ app, mastra, prefix: "" } as ConstructorParameters<typeof MastraServer>[0]).init();
+    await new MastraServer({ app, mastra, prefix: "" } as ConstructorParameters<
+      typeof MastraServer
+    >[0]).init();
     return app;
   };
 

@@ -15,7 +15,8 @@ export function encodeCursor(...parts: Array<string | number>): string {
 export function decodeCursor(cursor: string | null | undefined, arity: number): string[] | null {
   if (!cursor) return null;
   const parts = Buffer.from(cursor, "base64url").toString().split("|");
-  if (parts.length !== arity || parts.some((p) => p === "")) throw new DomainError("invalid", "invalid cursor");
+  if (parts.length !== arity || parts.some((p) => p === ""))
+    throw new DomainError("invalid", "invalid cursor");
   return parts;
 }
 

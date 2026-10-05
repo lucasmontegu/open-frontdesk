@@ -6,7 +6,17 @@ export class FakeContactRepository implements ContactRepository {
 
   async create(orgId: string, input: Parameters<ContactRepository["create"]>[1]) {
     const now = new Date();
-    const c: Contact = { id: randomUUID(), orgId, displayName: input.displayName, identities: input.identities, attributes: input.attributes ?? {}, tags: input.tags ?? [], doNotCall: input.doNotCall ?? false, createdAt: now, updatedAt: now };
+    const c: Contact = {
+      id: randomUUID(),
+      orgId,
+      displayName: input.displayName,
+      identities: input.identities,
+      attributes: input.attributes ?? {},
+      tags: input.tags ?? [],
+      doNotCall: input.doNotCall ?? false,
+      createdAt: now,
+      updatedAt: now,
+    };
     this.rows.set(c.id, c);
     return c;
   }
@@ -15,7 +25,13 @@ export class FakeContactRepository implements ContactRepository {
     return c && c.orgId === orgId ? c : null;
   }
   async findByIdentity(orgId: string, identity: { kind: string; value: string }) {
-    return [...this.rows.values()].find((c) => c.orgId === orgId && c.identities.some((i) => i.kind === identity.kind && i.value === identity.value)) ?? null;
+    return (
+      [...this.rows.values()].find(
+        (c) =>
+          c.orgId === orgId &&
+          c.identities.some((i) => i.kind === identity.kind && i.value === identity.value),
+      ) ?? null
+    );
   }
   async update(orgId: string, id: string, patch: Parameters<ContactRepository["update"]>[2]) {
     const c = await this.get(orgId, id);
@@ -35,7 +51,13 @@ export class FakeObligationRepository implements ObligationRepository {
   async upsert(orgId: string, input: Parameters<ObligationRepository["upsert"]>[1]) {
     const now = new Date();
     const prev = input.id ? this.rows.get(input.id) : undefined;
-    const o: Obligation = { ...input, id: input.id ?? randomUUID(), orgId, createdAt: prev?.createdAt ?? now, updatedAt: now };
+    const o: Obligation = {
+      ...input,
+      id: input.id ?? randomUUID(),
+      orgId,
+      createdAt: prev?.createdAt ?? now,
+      updatedAt: now,
+    };
     this.rows.set(o.id, o);
     return o;
   }
@@ -50,7 +72,9 @@ export function fakeFetch(responses: Array<{ status?: number; body?: unknown }>)
   const fn = async (url: string, init?: RequestInit) => {
     calls.push({ url, init });
     const r = responses.shift() ?? { status: 500, body: "no response queued" };
-    return new Response(r.status === 204 ? null : JSON.stringify(r.body ?? {}), { status: r.status ?? 200 });
+    return new Response(r.status === 204 ? null : JSON.stringify(r.body ?? {}), {
+      status: r.status ?? 200,
+    });
   };
   return { fetch: fn, calls };
 }

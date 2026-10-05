@@ -12,7 +12,14 @@ export const PackManifest = z.object({
 export type PackManifest = z.infer<typeof PackManifest>;
 
 export const Assertion = z.object({
-  type: z.enum(["tool_called", "tool_not_called", "event_present", "event_absent", "agent_says_not", "outcome"]),
+  type: z.enum([
+    "tool_called",
+    "tool_not_called",
+    "event_present",
+    "event_absent",
+    "agent_says_not",
+    "outcome",
+  ]),
   /** Tool name, event type, forbidden phrase or expected outcome, depending on `type`. */
   value: z.string().min(1),
 });

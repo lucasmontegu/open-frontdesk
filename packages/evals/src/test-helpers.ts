@@ -19,7 +19,17 @@ export function mockModel(steps: MockStep[]): LanguageModel & { prompts: unknown
       prompts.push(options.prompt);
       const s = next();
       return {
-        content: "text" in s ? [{ type: "text", text: s.text }] : [{ type: "tool-call", toolCallId: `call-${i}`, toolName: s.tool, input: JSON.stringify(s.input) }],
+        content:
+          "text" in s
+            ? [{ type: "text", text: s.text }]
+            : [
+                {
+                  type: "tool-call",
+                  toolCallId: `call-${i}`,
+                  toolName: s.tool,
+                  input: JSON.stringify(s.input),
+                },
+              ],
         finishReason: "text" in s ? "stop" : "tool-calls",
         usage,
         warnings: [],
@@ -28,11 +38,23 @@ export function mockModel(steps: MockStep[]): LanguageModel & { prompts: unknown
     async doStream(options: { prompt: unknown }) {
       prompts.push(options.prompt);
       const s = next();
-      const parts: unknown[] = [{ type: "stream-start", warnings: [] }, { type: "response-metadata", id: `r${i}`, modelId: "mock", timestamp: new Date() }];
+      const parts: unknown[] = [
+        { type: "stream-start", warnings: [] },
+        { type: "response-metadata", id: `r${i}`, modelId: "mock", timestamp: new Date() },
+      ];
       if ("text" in s) {
-        parts.push({ type: "text-start", id: "t" }, { type: "text-delta", id: "t", delta: s.text }, { type: "text-end", id: "t" });
+        parts.push(
+          { type: "text-start", id: "t" },
+          { type: "text-delta", id: "t", delta: s.text },
+          { type: "text-end", id: "t" },
+        );
       } else {
-        parts.push({ type: "tool-call", toolCallId: `call-${i}`, toolName: s.tool, input: JSON.stringify(s.input) });
+        parts.push({
+          type: "tool-call",
+          toolCallId: `call-${i}`,
+          toolName: s.tool,
+          input: JSON.stringify(s.input),
+        });
       }
       parts.push({ type: "finish", finishReason: "text" in s ? "stop" : "tool-calls", usage });
       return {

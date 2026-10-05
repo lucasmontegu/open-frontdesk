@@ -1,16 +1,16 @@
 import {
-  OrgId,
   type BotRepository,
   type BotVersion,
   type ContactProfile,
   type ContactRepository,
   type ConversationRepository,
   type EventStore,
+  OrgId,
   type ProfileLoader,
   type ToolCallContext,
 } from "@ofd/core";
-import { findContactByPhone, routeInbound } from "./inbound.js";
 import type { OutboundDispatch } from "./dispatch.js";
+import { findContactByPhone, routeInbound } from "./inbound.js";
 
 export interface CallDeps {
   bots: Pick<BotRepository, "getVersion">;
@@ -19,7 +19,11 @@ export interface CallDeps {
   conversations: ConversationRepository;
   events: EventStore;
   /** Builds the Mastra agent: createFrontDeskAgent with the gateway and memory in production. */
-  buildAgent(input: { version: BotVersion; profile: ContactProfile | null; toolContext: Omit<ToolCallContext, "traceId"> }): unknown;
+  buildAgent(input: {
+    version: BotVersion;
+    profile: ContactProfile | null;
+    toolContext: Omit<ToolCallContext, "traceId">;
+  }): unknown;
   env?: Record<string, string | undefined>;
 }
 
@@ -40,7 +44,10 @@ export type CallRequest =
   | { kind: "inbound"; callerPhone: string | null; calledNumber: string | null };
 
 /** Resolves who is on the line and which bot answers, then builds the agent with the preloaded profile. */
-export async function prepareCall<A = unknown>(deps: CallDeps, request: CallRequest): Promise<PreparedCall<A>> {
+export async function prepareCall<A = unknown>(
+  deps: CallDeps,
+  request: CallRequest,
+): Promise<PreparedCall<A>> {
   let orgId: string;
   let botVersionId: string;
   let conversationId: string;
@@ -49,10 +56,15 @@ export async function prepareCall<A = unknown>(deps: CallDeps, request: CallRequ
   if (request.kind === "outbound") {
     ({ orgId, botVersionId, conversationId } = request.dispatch);
     const fromContext = request.dispatch.context["contactId"];
-    contactId = typeof fromContext === "string" ? fromContext : await contactFromConversation(deps.events, orgId, conversationId);
+    contactId =
+      typeof fromContext === "string"
+        ? fromContext
+        : await contactFromConversation(deps.events, orgId, conversationId);
   } else {
     ({ orgId, botVersionId } = routeInbound(deps.env ?? process.env, request.calledNumber));
-    const contact = request.callerPhone ? await findContactByPhone(deps.contacts, orgId, request.callerPhone) : null;
+    const contact = request.callerPhone
+      ? await findContactByPhone(deps.contacts, orgId, request.callerPhone)
+      : null;
     contactId = contact?.id ?? null;
     conversationId = "";
   }
@@ -61,7 +73,14 @@ export async function prepareCall<A = unknown>(deps: CallDeps, request: CallRequ
   if (!version) throw new Error(`Bot version ${botVersionId} not found for org ${orgId}`);
 
   if (request.kind === "inbound") {
-    conversationId = (await deps.conversations.start(orgId, { channel: "voice", contactId, botVersionId, direction: "inbound" })).id;
+    conversationId = (
+      await deps.conversations.start(orgId, {
+        channel: "voice",
+        contactId,
+        botVersionId,
+        direction: "inbound",
+      })
+    ).id;
     await deps.events.append({
       orgId,
       type: "conversation.started",
@@ -99,7 +118,11 @@ export async function prepareCall<A = unknown>(deps: CallDeps, request: CallRequ
   };
 }
 
-async function contactFromConversation(events: EventStore, orgId: string, conversationId: string): Promise<string | null> {
+async function contactFromConversation(
+  events: EventStore,
+  orgId: string,
+  conversationId: string,
+): Promise<string | null> {
   const list = await events.listByConversation(orgId, conversationId);
   return list.find((e) => e.contactId)?.contactId ?? null;
 }

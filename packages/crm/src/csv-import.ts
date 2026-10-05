@@ -1,5 +1,10 @@
+import type {
+  ContactIdentity,
+  ContactRepository,
+  ObligationKind,
+  ObligationRepository,
+} from "@ofd/core";
 import { parse } from "csv-parse/sync";
-import type { ContactIdentity, ContactRepository, ObligationKind, ObligationRepository } from "@ofd/core";
 import { normalizeArgentinePhone } from "./phone.js";
 
 /** Maps canonical fields to CSV header names. */
@@ -69,12 +74,22 @@ export function parseDate(raw: string): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-export async function importContactsCsv(csvText: string, mapping: ImportMapping, deps: ImportDeps): Promise<ImportResult> {
+export async function importContactsCsv(
+  csvText: string,
+  mapping: ImportMapping,
+  deps: ImportDeps,
+): Promise<ImportResult> {
   const { orgId } = deps;
   const result: ImportResult = { created: 0, updated: 0, skipped: 0, errors: [] };
   let records: Record<string, string>[];
   try {
-    records = parse(csvText, { columns: true, skip_empty_lines: true, trim: true, bom: true, relax_column_count: true });
+    records = parse(csvText, {
+      columns: true,
+      skip_empty_lines: true,
+      trim: true,
+      bom: true,
+      relax_column_count: true,
+    });
   } catch (err) {
     result.errors.push({ row: 0, message: `Invalid CSV: ${(err as Error).message}` });
     return result;
@@ -91,7 +106,8 @@ export async function importContactsCsv(csvText: string, mapping: ImportMapping,
         continue;
       }
       if (!displayName) throw new Error("Missing display name");
-      if (identities.length === 0) throw new Error("No valid phone, email or document to identify the contact");
+      if (identities.length === 0)
+        throw new Error("No valid phone, email or document to identify the contact");
 
       const tags = cell(mapping.tags)
         .split(mapping.tagSeparator ?? ",")
@@ -119,7 +135,12 @@ export async function importContactsCsv(csvText: string, mapping: ImportMapping,
         contactId = updated.id;
         result.updated++;
       } else {
-        const created = await deps.contacts.create(orgId, { displayName, identities, attributes, tags });
+        const created = await deps.contacts.create(orgId, {
+          displayName,
+          identities,
+          attributes,
+          tags,
+        });
         contactId = created.id;
         result.created++;
       }
@@ -127,8 +148,19 @@ export async function importContactsCsv(csvText: string, mapping: ImportMapping,
       const obligation = buildObligation(cell, mapping);
       if (obligation) {
         const current = await deps.obligations.listByContact(orgId, contactId);
-        const match = current.find((o) => o.kind === obligation.kind && o.amount === obligation.amount && o.dueAt?.getTime() === obligation.dueAt?.getTime());
-        await deps.obligations.upsert(orgId, { ...obligation, contactId, portfolioId: match?.portfolioId ?? null, attributes: match?.attributes ?? {}, ...(match ? { id: match.id } : {}) });
+        const match = current.find(
+          (o) =>
+            o.kind === obligation.kind &&
+            o.amount === obligation.amount &&
+            o.dueAt?.getTime() === obligation.dueAt?.getTime(),
+        );
+        await deps.obligations.upsert(orgId, {
+          ...obligation,
+          contactId,
+          portfolioId: match?.portfolioId ?? null,
+          attributes: match?.attributes ?? {},
+          ...(match ? { id: match.id } : {}),
+        });
       }
     } catch (err) {
       result.errors.push({ row, message: (err as Error).message });
@@ -181,7 +213,8 @@ function buildObligation(cell: (col?: string) => string, m: ImportMapping) {
   return {
     kind,
     amount,
-    currency: cell(o.currency).toUpperCase() || (amount !== null ? (o.defaultCurrency ?? "ARS") : null),
+    currency:
+      cell(o.currency).toUpperCase() || (amount !== null ? (o.defaultCurrency ?? "ARS") : null),
     dueAt,
     stage: stageRaw || o.defaultStage || "new",
   };

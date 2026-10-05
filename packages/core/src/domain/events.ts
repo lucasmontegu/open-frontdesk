@@ -5,7 +5,12 @@ import type { Channel } from "./bot.js";
  * eval assertions, analytics and fact extraction.
  */
 export type EventPayloads = {
-  "conversation.started": { channel: Channel; contactId: string | null; direction: "inbound" | "outbound"; missionId?: string };
+  "conversation.started": {
+    channel: Channel;
+    contactId: string | null;
+    direction: "inbound" | "outbound";
+    missionId?: string;
+  };
   "conversation.ended": { outcome: string; summary?: string };
   "customer.message": { text: string };
   "agent.message": { text: string };
@@ -43,7 +48,10 @@ export interface InteractionEvent<T extends EventType = EventType> {
   occurredAt: Date;
 }
 
-export type NewEvent<T extends EventType = EventType> = Omit<InteractionEvent<T>, "id" | "occurredAt"> & {
+export type NewEvent<T extends EventType = EventType> = Omit<
+  InteractionEvent<T>,
+  "id" | "occurredAt"
+> & {
   occurredAt?: Date;
 };
 

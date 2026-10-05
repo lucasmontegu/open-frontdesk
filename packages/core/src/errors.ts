@@ -1,7 +1,13 @@
 /** Errors the HTTP layer maps to status codes. Messages are safe to show to users. */
 export class DomainError extends Error {
   constructor(
-    readonly code: "not_found" | "forbidden" | "conflict" | "invalid" | "policy_refused" | "eval_failed",
+    readonly code:
+      | "not_found"
+      | "forbidden"
+      | "conflict"
+      | "invalid"
+      | "policy_refused"
+      | "eval_failed",
     message: string,
   ) {
     super(message);

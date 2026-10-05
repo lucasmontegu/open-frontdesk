@@ -26,10 +26,20 @@ export class PgKnowledgeSearch implements KnowledgeSearch {
     private readonly embed?: Embed,
   ) {}
 
-  async ingest(orgId: string, doc: { title: string; content: string; botId?: string | null }): Promise<{ id: string }> {
+  async ingest(
+    orgId: string,
+    doc: { title: string; content: string; botId?: string | null },
+  ): Promise<{ id: string }> {
     const id = newId("kd");
     const embedding = this.embed ? await this.embed(`${doc.title}\n${doc.content}`) : null;
-    await this.db.insert(knowledgeDocs).values({ id, orgId, botId: doc.botId ?? null, title: doc.title, content: doc.content, embedding });
+    await this.db.insert(knowledgeDocs).values({
+      id,
+      orgId,
+      botId: doc.botId ?? null,
+      title: doc.title,
+      content: doc.content,
+      embedding,
+    });
     return { id };
   }
 
@@ -47,7 +57,9 @@ export class PgKnowledgeSearch implements KnowledgeSearch {
     const lexical = bm25.filter((r) => Number(r.score) < 0);
 
     if (!this.embed) {
-      return lexical.slice(0, limit).map((r) => ({ id: r.id, title: r.title, content: r.content, score: -Number(r.score) }));
+      return lexical
+        .slice(0, limit)
+        .map((r) => ({ id: r.id, title: r.title, content: r.content, score: -Number(r.score) }));
     }
 
     const vec = JSON.stringify(await this.embed(query));
@@ -63,7 +75,12 @@ export class PgKnowledgeSearch implements KnowledgeSearch {
       list.forEach((hit, rank) => {
         const prev = fused.get(hit.id);
         const add = 1 / (RRF_K + rank + 1);
-        fused.set(hit.id, { id: hit.id, title: hit.title, content: hit.content, score: (prev?.score ?? 0) + add });
+        fused.set(hit.id, {
+          id: hit.id,
+          title: hit.title,
+          content: hit.content,
+          score: (prev?.score ?? 0) + add,
+        });
       });
     }
     return [...fused.values()].sort((a, b) => b.score - a.score).slice(0, limit);

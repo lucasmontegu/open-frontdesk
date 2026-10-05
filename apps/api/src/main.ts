@@ -10,7 +10,11 @@ async function main() {
 
   if (process.env.OFD_MIGRATE_ON_BOOT !== "false") {
     await runMigrations(config.databaseUrl);
-    await migrateAuth({ databaseUrl: config.databaseUrl, secret: config.auth.secret, baseURL: config.auth.url });
+    await migrateAuth({
+      databaseUrl: config.databaseUrl,
+      secret: config.auth.secret,
+      baseURL: config.auth.url,
+    });
   }
 
   const container = await createContainer(config);

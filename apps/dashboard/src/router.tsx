@@ -1,19 +1,33 @@
-import { Outlet, createRootRoute, createRoute, createRouter, redirect } from "@tanstack/react-router";
+import {
+  createRootRoute,
+  createRoute,
+  createRouter,
+  Outlet,
+  redirect,
+} from "@tanstack/react-router";
 import { Layout } from "./components/Layout";
 import { authClient } from "./lib/auth";
 import { ActivityPage } from "./pages/Activity";
+import { SignInPage, SignUpPage } from "./pages/Auth";
 import { BotDetailPage, BotsPage } from "./pages/Bots";
 import { ContactDetailPage, ContactsPage } from "./pages/Contacts";
 import { HomePage } from "./pages/Home";
 import { MissionDetailPage, MissionsPage } from "./pages/Missions";
 import { PortfolioDetailPage, PortfoliosPage } from "./pages/Portfolios";
-import { SignInPage, SignUpPage } from "./pages/Auth";
 
 const rootRoute = createRootRoute({ component: Outlet });
 
 // Public routes
-const signInRoute = createRoute({ getParentRoute: () => rootRoute, path: "/ingresar", component: SignInPage });
-const signUpRoute = createRoute({ getParentRoute: () => rootRoute, path: "/registro", component: SignUpPage });
+const signInRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/ingresar",
+  component: SignInPage,
+});
+const signUpRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/registro",
+  component: SignUpPage,
+});
 
 // Authenticated shell. The guard also makes sure an organization is active.
 const appRoute = createRoute({

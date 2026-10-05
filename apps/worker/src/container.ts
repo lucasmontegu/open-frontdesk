@@ -1,11 +1,22 @@
-import { createFrontDeskAgent, createBuiltinTools, InMemoryCalendar } from "@ofd/agent";
-import { ConsoleMessagingProvider, KapsoWhatsAppProvider, LiveKitTelephonyProvider } from "@ofd/channels";
-import { OrgId, type MessagingProvider, type TelephonyProvider } from "@ofd/core";
+import { createBuiltinTools, createFrontDeskAgent, InMemoryCalendar } from "@ofd/agent";
+import {
+  ConsoleMessagingProvider,
+  KapsoWhatsAppProvider,
+  LiveKitTelephonyProvider,
+} from "@ofd/channels";
+import type { CrmConnector } from "@ofd/core";
+import { type MessagingProvider, OrgId, type TelephonyProvider } from "@ofd/core";
 import { HubSpotConnector, KommoConnector } from "@ofd/crm";
 import { createDb, createRepositories } from "@ofd/db";
 import { createToolGateway } from "@ofd/gateway";
-import { type Config, createLogger, loadConfig, PgBossJobQueue, RedisHoldStore, type Logger } from "@ofd/infra";
-import type { CrmConnector } from "@ofd/core";
+import {
+  type Config,
+  createLogger,
+  type Logger,
+  loadConfig,
+  PgBossJobQueue,
+  RedisHoldStore,
+} from "@ofd/infra";
 import { createAppointmentsLoader } from "./appointments.js";
 import { createOpenAiFactExtractor } from "./facts.js";
 import { createMessageComposer } from "./message-composer.js";
@@ -33,7 +44,10 @@ function crmConnectors(env: Record<string, string | undefined>) {
   return (_orgId: string, connectorId: string): CrmConnector | null => {
     // TODO: per-org connector credentials stored in the database instead of process env.
     if (connectorId === "hubspot" && env["HUBSPOT_TOKEN"]) {
-      return new HubSpotConnector({ baseUrl: env["HUBSPOT_BASE_URL"] ?? "https://api.hubspot.com", token: env["HUBSPOT_TOKEN"] });
+      return new HubSpotConnector({
+        baseUrl: env["HUBSPOT_BASE_URL"] ?? "https://api.hubspot.com",
+        token: env["HUBSPOT_TOKEN"],
+      });
     }
     if (connectorId === "kommo" && env["KOMMO_TOKEN"] && env["KOMMO_BASE_URL"]) {
       return new KommoConnector({ baseUrl: env["KOMMO_BASE_URL"], token: env["KOMMO_TOKEN"] });
@@ -43,7 +57,9 @@ function crmConnectors(env: Record<string, string | undefined>) {
 }
 
 /** The only place in the worker that creates clients. */
-export async function createContainer(env: Record<string, string | undefined> = process.env): Promise<Container> {
+export async function createContainer(
+  env: Record<string, string | undefined> = process.env,
+): Promise<Container> {
   const config = loadConfig(env);
   const log = createLogger(config, "ofd-worker");
 
@@ -51,14 +67,26 @@ export async function createContainer(env: Record<string, string | undefined> = 
   const repos = createRepositories(db);
   const redis = await connectRedis(config.redisUrl);
   const holds = new RedisHoldStore(redis.client);
-  const queue = new PgBossJobQueue({ connectionString: config.databaseUrl, onError: (err) => log.error({ err: err.message }, "pg-boss error") });
+  const queue = new PgBossJobQueue({
+    connectionString: config.databaseUrl,
+    onError: (err) => log.error({ err: err.message }, "pg-boss error"),
+  });
 
   const messaging: MessagingProvider =
     config.kapso.apiKey && config.kapso.baseUrl && env["KAPSO_PHONE_NUMBER_ID"]
-      ? new KapsoWhatsAppProvider({ baseUrl: config.kapso.baseUrl, apiKey: config.kapso.apiKey, phoneNumberId: env["KAPSO_PHONE_NUMBER_ID"] })
+      ? new KapsoWhatsAppProvider({
+          baseUrl: config.kapso.baseUrl,
+          apiKey: config.kapso.apiKey,
+          phoneNumberId: env["KAPSO_PHONE_NUMBER_ID"],
+        })
       : new ConsoleMessagingProvider(log);
   const telephony: TelephonyProvider = env["LIVEKIT_SIP_TRUNK_ID"]
-    ? new LiveKitTelephonyProvider({ url: config.livekit.url, apiKey: config.livekit.apiKey, apiSecret: config.livekit.apiSecret, sipTrunkId: env["LIVEKIT_SIP_TRUNK_ID"] })
+    ? new LiveKitTelephonyProvider({
+        url: config.livekit.url,
+        apiKey: config.livekit.apiKey,
+        apiSecret: config.livekit.apiSecret,
+        sipTrunkId: env["LIVEKIT_SIP_TRUNK_ID"],
+      })
     : new UnconfiguredTelephony();
 
   // TODO: real CalendarProvider (Google Calendar / clinic system). The in-memory one has no slots until something adds them.
@@ -87,7 +115,11 @@ export async function createContainer(env: Record<string, string | undefined> = 
   const modelConfigured = Boolean(config.openaiApiKey);
   const compose = createMessageComposer({
     timezone: config.timezone,
-    onFallback: (err) => log.warn({ err: err instanceof Error ? err.message : String(err) }, "message composition failed, using template"),
+    onFallback: (err) =>
+      log.warn(
+        { err: err instanceof Error ? err.message : String(err) },
+        "message composition failed, using template",
+      ),
     createAgent: modelConfigured
       ? ({ orgId, version, contact, profile, conversationId }) => {
           const agent = createFrontDeskAgent({
@@ -113,7 +145,10 @@ export async function createContainer(env: Record<string, string | undefined> = 
   const model = config.defaultModel;
   const modelExtractor =
     config.openaiApiKey && model.startsWith("openai/")
-      ? createOpenAiFactExtractor({ apiKey: config.openaiApiKey, model: model.slice("openai/".length) })
+      ? createOpenAiFactExtractor({
+          apiKey: config.openaiApiKey,
+          model: model.slice("openai/".length),
+        })
       : null;
 
   const plannerFor = createPlannerSelector({
@@ -124,7 +159,14 @@ export async function createContainer(env: Record<string, string | undefined> = 
   });
 
   const deps: HandlerDeps = {
-    missionPlan: { missions: repos.missions, bots: repos.bots, events: repos.events, jobs: queue, plannerFor, log },
+    missionPlan: {
+      missions: repos.missions,
+      bots: repos.bots,
+      events: repos.events,
+      jobs: queue,
+      plannerFor,
+      log,
+    },
     missionExecute: { missions: repos.missions, jobs: queue, events: repos.events, log },
     missionContact: {
       missions: repos.missions,
@@ -139,10 +181,21 @@ export async function createContainer(env: Record<string, string | undefined> = 
       compose,
       log,
     },
-    extractFacts: { events: repos.events, facts: repos.facts, modelExtractor, timezone: config.timezone, log },
+    extractFacts: {
+      events: repos.events,
+      facts: repos.facts,
+      modelExtractor,
+      timezone: config.timezone,
+      log,
+    },
     // TODO: GoalStore once core has a goals port and table.
     goalTick: { goals: null, log },
-    crmSync: { contacts: repos.contacts, obligations: repos.obligations, connectorFor: crmConnectors(env), log },
+    crmSync: {
+      contacts: repos.contacts,
+      obligations: repos.obligations,
+      connectorFor: crmConnectors(env),
+      log,
+    },
   };
 
   return {

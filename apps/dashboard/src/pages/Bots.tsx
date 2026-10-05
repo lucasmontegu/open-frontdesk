@@ -1,13 +1,33 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
-import { Badge, Button, Card, Dialog, EmptyState, ErrorNote, Input, Loading, PageHeader, Select, Table, Td, Th } from "../components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  Dialog,
+  EmptyState,
+  ErrorNote,
+  Input,
+  Loading,
+  PageHeader,
+  Select,
+  Table,
+  Td,
+  Th,
+} from "../components/ui";
 import { t } from "../i18n";
-import { type BotVersionDto, type EvalOutcome, api, evalOutcomeFrom } from "../lib/api";
+import { api, type BotVersionDto, type EvalOutcome, evalOutcomeFrom } from "../lib/api";
 import { ApiError } from "../lib/api-error";
 import { formatDate } from "../lib/format";
 
-const statusTone = { published: "ok", rejected: "danger", evaluating: "warn", draft: "neutral", archived: "neutral" } as const;
+const statusTone = {
+  published: "ok",
+  rejected: "danger",
+  evaluating: "warn",
+  draft: "neutral",
+  archived: "neutral",
+} as const;
 
 function CreateDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const qc = useQueryClient();
@@ -37,7 +57,9 @@ function CreateDialog({ open, onClose }: { open: boolean; onClose: () => void })
             </option>
           ))}
         </Select>
-        {packs.data && packs.data.items.length === 0 && <p className="text-xs text-muted">{t.bots.packsEmpty}</p>}
+        {packs.data && packs.data.items.length === 0 && (
+          <p className="text-xs text-muted">{t.bots.packsEmpty}</p>
+        )}
         {m.error && <ErrorNote error={m.error} />}
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>
@@ -58,7 +80,10 @@ export function BotsPage() {
   const items = q.data?.items ?? [];
   return (
     <>
-      <PageHeader title={t.bots.title} actions={<Button onClick={() => setCreating(true)}>{t.bots.create}</Button>} />
+      <PageHeader
+        title={t.bots.title}
+        actions={<Button onClick={() => setCreating(true)}>{t.bots.create}</Button>}
+      />
       {q.error && <ErrorNote error={q.error} onRetry={() => q.refetch()} />}
       <Card>
         {q.isLoading ? (
@@ -78,11 +103,21 @@ export function BotsPage() {
               {items.map((b) => (
                 <tr key={b.id}>
                   <Td>
-                    <Link to="/bots/$botId" params={{ botId: b.id }} className="font-medium text-accent underline">
+                    <Link
+                      to="/bots/$botId"
+                      params={{ botId: b.id }}
+                      className="font-medium text-accent underline"
+                    >
                       {b.name}
                     </Link>
                   </Td>
-                  <Td>{b.publishedVersionId ? <Badge tone="ok">{t.bots.published}</Badge> : <Badge>{t.bots.noPublished}</Badge>}</Td>
+                  <Td>
+                    {b.publishedVersionId ? (
+                      <Badge tone="ok">{t.bots.published}</Badge>
+                    ) : (
+                      <Badge>{t.bots.noPublished}</Badge>
+                    )}
+                  </Td>
                   <Td className="whitespace-nowrap">{formatDate(b.createdAt)}</Td>
                 </tr>
               ))}
@@ -105,7 +140,10 @@ interface PublishState {
 function EvalPanel({ state }: { state: PublishState }) {
   const o = state.outcome;
   return (
-    <div role="status" className={`mb-4 rounded-md px-4 py-3 text-sm ${state.ok ? "bg-ok-bg text-ok" : "bg-danger-bg text-danger"}`}>
+    <div
+      role="status"
+      className={`mb-4 rounded-md px-4 py-3 text-sm ${state.ok ? "bg-ok-bg text-ok" : "bg-danger-bg text-danger"}`}
+    >
       <p className="font-medium">{state.ok ? t.bots.published_ok : t.bots.rejected}</p>
       {!state.ok && state.message && (
         <p className="mt-1">
@@ -119,8 +157,8 @@ function EvalPanel({ state }: { state: PublishState }) {
           {o.score !== undefined && <p>{Math.round(o.score * 100)}%</p>}
           {o.failures && o.failures.length > 0 && (
             <ul className="list-disc pl-5">
-              {o.failures.map((f, i) => (
-                <li key={`${f.scenario}-${i}`}>
+              {o.failures.map((f) => (
+                <li key={`${f.scenario}-${f.reason}`}>
                   {f.scenario && <strong>{f.scenario}: </strong>}
                   {f.reason}
                 </li>
@@ -148,7 +186,12 @@ export function BotDetailPage() {
     },
     onError: (err, v) => {
       const e = err instanceof ApiError ? err : null;
-      setResult({ versionId: v.id, ok: false, message: err.message, outcome: evalOutcomeFrom(e?.details) });
+      setResult({
+        versionId: v.id,
+        ok: false,
+        message: err.message,
+        outcome: evalOutcomeFrom(e?.details),
+      });
     },
     onSettled: async () => {
       await qc.invalidateQueries({ queryKey: ["bot", botId] });
@@ -190,14 +233,18 @@ export function BotDetailPage() {
                     {v.id === bot.publishedVersionId && " ✓"}
                   </Td>
                   <Td>
-                    <Badge tone={statusTone[v.status]}>{t.bots.versionStatus[v.status] ?? v.status}</Badge>
+                    <Badge tone={statusTone[v.status]}>
+                      {t.bots.versionStatus[v.status] ?? v.status}
+                    </Badge>
                   </Td>
                   <Td>{v.config.autonomy}</Td>
                   <Td className="whitespace-nowrap">{formatDate(v.createdAt)}</Td>
                   <Td>
                     {(v.status === "draft" || v.status === "rejected") && (
                       <Button disabled={publish.isPending} onClick={() => publish.mutate(v)}>
-                        {publish.isPending && publish.variables?.id === v.id ? t.bots.publishing : t.bots.publish}
+                        {publish.isPending && publish.variables?.id === v.id
+                          ? t.bots.publishing
+                          : t.bots.publish}
                       </Button>
                     )}
                   </Td>

@@ -21,7 +21,15 @@ export const Resource = z.enum([
 ]);
 export type Resource = z.infer<typeof Resource>;
 
-export const Action = z.enum(["read", "create", "update", "delete", "publish", "approve", "takeover"]);
+export const Action = z.enum([
+  "read",
+  "create",
+  "update",
+  "delete",
+  "publish",
+  "approve",
+  "takeover",
+]);
 export type Action = z.infer<typeof Action>;
 
 /**

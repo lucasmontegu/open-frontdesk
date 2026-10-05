@@ -2,7 +2,15 @@ import { migrateAuth } from "@ofd/auth";
 import { runMigrations } from "@ofd/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "./app.js";
-import { Client, DATABASE_URL, type TestContainer, createTestContainer, signUp, signUpOwner, testConfig } from "./test/helpers.js";
+import {
+  Client,
+  createTestContainer,
+  DATABASE_URL,
+  signUp,
+  signUpOwner,
+  type TestContainer,
+  testConfig,
+} from "./test/helpers.js";
 
 let container: TestContainer;
 let app: ReturnType<typeof createApp>;
@@ -10,7 +18,11 @@ let app: ReturnType<typeof createApp>;
 beforeAll(async () => {
   const config = testConfig();
   await runMigrations(DATABASE_URL);
-  await migrateAuth({ databaseUrl: DATABASE_URL, secret: config.auth.secret, baseURL: config.auth.url });
+  await migrateAuth({
+    databaseUrl: DATABASE_URL,
+    secret: config.auth.secret,
+    baseURL: config.auth.url,
+  });
   container = createTestContainer();
   app = createApp(container);
 }, 60_000);
@@ -57,11 +69,18 @@ describe("contacts", () => {
 
   it("accepts an organization API key as a Bearer token", async () => {
     const owner = await signUpOwner(app);
-    const key = await owner.client.post("/api/auth/api-key/create", { organizationId: owner.orgId, name: "mcp" });
+    const key = await owner.client.post("/api/auth/api-key/create", {
+      organizationId: owner.orgId,
+      name: "mcp",
+    });
     expect(key.status).toBe(200);
-    const res = await app.request("/api/contacts", { headers: { authorization: `Bearer ${key.body.key}` } });
+    const res = await app.request("/api/contacts", {
+      headers: { authorization: `Bearer ${key.body.key}` },
+    });
     expect(res.status).toBe(200);
-    const bad = await app.request("/api/contacts", { headers: { authorization: "Bearer ofd_not-a-key" } });
+    const bad = await app.request("/api/contacts", {
+      headers: { authorization: "Bearer ofd_not-a-key" },
+    });
     expect(bad.status).toBe(401);
   });
 
@@ -75,8 +94,12 @@ describe("contacts", () => {
   it("forbids a viewer from creating a contact", async () => {
     const owner = await signUpOwner(app);
     const viewer = await signUp(app, "viewer");
-    await container.auth.api.addMember({ body: { userId: viewer.userId, role: "viewer", organizationId: owner.orgId } });
-    const active = await viewer.client.post("/api/auth/organization/set-active", { organizationId: owner.orgId });
+    await container.auth.api.addMember({
+      body: { userId: viewer.userId, role: "viewer", organizationId: owner.orgId },
+    });
+    const active = await viewer.client.post("/api/auth/organization/set-active", {
+      organizationId: owner.orgId,
+    });
     expect(active.status).toBe(200);
 
     expect((await viewer.client.get("/api/contacts")).status).toBe(200);
@@ -89,7 +112,7 @@ describe("contacts", () => {
     const owner = await signUpOwner(app);
     const csv = [
       "nombre,telefono,email,dni,monto,vencimiento,etapa,tipo",
-      "Juan Gómez,11 5555-0002,juan@example.com,30111222,\"1.234,56\",31/03/2026,mora,deuda",
+      'Juan Gómez,11 5555-0002,juan@example.com,30111222,"1.234,56",31/03/2026,mora,deuda',
       ",,,,,,,",
       "Sin Datos,,,,,,,",
     ].join("\n");
@@ -100,7 +123,11 @@ describe("contacts", () => {
     const list = await owner.client.get("/api/contacts");
     expect(list.body.items[0].displayName).toBe("Juan Gómez");
     const detail = await owner.client.get(`/api/contacts/${list.body.items[0].id}`);
-    expect(detail.body.obligations[0]).toMatchObject({ kind: "debt", amount: 1234.56, stage: "mora" });
+    expect(detail.body.obligations[0]).toMatchObject({
+      kind: "debt",
+      amount: 1234.56,
+      stage: "mora",
+    });
   });
 });
 
@@ -110,7 +137,10 @@ describe("bots", () => {
     const packs = await owner.client.get("/api/packs");
     expect(packs.body.length).toBeGreaterThan(0);
 
-    const bot = await owner.client.post("/api/bots", { name: "Cobranzas", packId: packs.body[0].id });
+    const bot = await owner.client.post("/api/bots", {
+      name: "Cobranzas",
+      packId: packs.body[0].id,
+    });
     expect(bot.status).toBe(201);
     const detail = await owner.client.get(`/api/bots/${bot.body.id}`);
     expect(detail.body.versions).toHaveLength(1);
@@ -133,7 +163,13 @@ describe("bots", () => {
     expect(afterFail.body.versions[0].status).toBe("rejected");
     expect(afterFail.body.bot.publishedVersionId).toBeNull();
 
-    container.gateResult.current = { id: "", passed: true, score: 1, summary: "all green", failures: [] };
+    container.gateResult.current = {
+      id: "",
+      passed: true,
+      score: 1,
+      summary: "all green",
+      failures: [],
+    };
     const ok = await owner.client.post(publish);
     expect(ok.status).toBe(200);
     expect(ok.body.version.status).toBe("published");
@@ -146,21 +182,34 @@ describe("bots", () => {
 describe("missions", () => {
   it("requires a published bot, enqueues planning and approval", async () => {
     const owner = await signUpOwner(app);
-    const bot = await owner.client.post("/api/bots", { name: "B", packId: (await owner.client.get("/api/packs")).body[0].id });
-    const early = await owner.client.post("/api/missions", { instruction: "llamar a todos", botId: bot.body.id });
+    const bot = await owner.client.post("/api/bots", {
+      name: "B",
+      packId: (await owner.client.get("/api/packs")).body[0].id,
+    });
+    const early = await owner.client.post("/api/missions", {
+      instruction: "llamar a todos",
+      botId: bot.body.id,
+    });
     expect(early.status).toBe(409);
 
     const versionId = (await owner.client.get(`/api/bots/${bot.body.id}`)).body.versions[0].id;
     container.gateResult.current = { id: "", passed: true, score: 1, summary: "ok", failures: [] };
-    expect((await owner.client.post(`/api/bots/${bot.body.id}/versions/${versionId}/publish`)).status).toBe(200);
+    expect(
+      (await owner.client.post(`/api/bots/${bot.body.id}/versions/${versionId}/publish`)).status,
+    ).toBe(200);
 
-    const mission = await owner.client.post("/api/missions", { instruction: "llamar a todos", botId: bot.body.id });
+    const mission = await owner.client.post("/api/missions", {
+      instruction: "llamar a todos",
+      botId: bot.body.id,
+    });
     expect(mission.status).toBe(201);
     expect(container.enqueued.at(-1)?.name).toBe("mission.plan");
 
     const notReady = await owner.client.post(`/api/missions/${mission.body.id}/approve`);
     expect(notReady.status).toBe(409);
-    await container.repos.missions.update(owner.orgId, mission.body.id, { status: "awaiting_approval" });
+    await container.repos.missions.update(owner.orgId, mission.body.id, {
+      status: "awaiting_approval",
+    });
     const approved = await owner.client.post(`/api/missions/${mission.body.id}/approve`);
     expect(approved.status).toBe(200);
     expect(container.enqueued.at(-1)?.name).toBe("mission.execute");

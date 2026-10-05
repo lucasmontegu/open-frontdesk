@@ -26,7 +26,11 @@ export interface SyncResult {
 
 export class CrmSyncService {
   constructor(
-    private readonly deps: { contacts: ContactRepository; obligations: ObligationRepository; connector: CrmConnector },
+    private readonly deps: {
+      contacts: ContactRepository;
+      obligations: ObligationRepository;
+      connector: CrmConnector;
+    },
     private readonly ownership: FieldOwnership = DEFAULT_FIELD_OWNERSHIP,
   ) {}
 
@@ -36,7 +40,9 @@ export class CrmSyncService {
     const result: SyncResult = { created: 0, updated: 0, obligations: 0, errors: [] };
 
     for await (const item of connector.pull(orgId, since)) {
-      const externalId = item.contact.identities.find((i) => i.kind === "external" && i.source === connector.id)?.value ?? null;
+      const externalId =
+        item.contact.identities.find((i) => i.kind === "external" && i.source === connector.id)
+          ?.value ?? null;
       try {
         let existing: Contact | null = null;
         for (const identity of orderedIdentities(item.contact.identities, connector.id)) {
@@ -63,8 +69,15 @@ export class CrmSyncService {
           const current = await obligations.listByContact(orgId, contact.id);
           for (const o of item.obligations) {
             const extId = o.attributes["externalId"];
-            const match = extId !== undefined ? current.find((c) => c.attributes["externalId"] === extId) : undefined;
-            await obligations.upsert(orgId, { ...o, contactId: contact.id, ...(match ? { id: match.id } : {}) });
+            const match =
+              extId !== undefined
+                ? current.find((c) => c.attributes["externalId"] === extId)
+                : undefined;
+            await obligations.upsert(orgId, {
+              ...o,
+              contactId: contact.id,
+              ...(match ? { id: match.id } : {}),
+            });
             result.obligations++;
           }
         }
@@ -82,13 +95,18 @@ export class CrmSyncService {
     outcome: { summary: string; outcome: string; facts: Array<{ key: string; value: string }> },
   ): Promise<boolean> {
     const contact = await this.deps.contacts.get(orgId, contactId);
-    const link = contact?.identities.find((i) => i.kind === "external" && i.source === this.deps.connector.id);
+    const link = contact?.identities.find(
+      (i) => i.kind === "external" && i.source === this.deps.connector.id,
+    );
     if (!link) return false;
     await this.deps.connector.pushOutcome(orgId, { externalContactId: link.value, ...outcome });
     return true;
   }
 
-  private merge(existing: Contact, incoming: Pick<Contact, "displayName" | "tags" | "doNotCall" | "attributes">) {
+  private merge(
+    existing: Contact,
+    incoming: Pick<Contact, "displayName" | "tags" | "doNotCall" | "attributes">,
+  ) {
     const o = this.ownership;
     const attributes: Record<string, unknown> = { ...existing.attributes };
     for (const [key, value] of Object.entries(incoming.attributes)) {
@@ -96,7 +114,10 @@ export class CrmSyncService {
       if (owner === "external" || !(key in existing.attributes)) attributes[key] = value;
     }
     return {
-      displayName: o.displayName === "external" && incoming.displayName ? incoming.displayName : existing.displayName,
+      displayName:
+        o.displayName === "external" && incoming.displayName
+          ? incoming.displayName
+          : existing.displayName,
       tags: o.tags === "external" ? incoming.tags : existing.tags,
       doNotCall: o.doNotCall === "external" ? incoming.doNotCall : existing.doNotCall,
       attributes,

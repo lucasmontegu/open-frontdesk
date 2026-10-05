@@ -42,7 +42,13 @@ export function createMessageComposer(opts: {
 }): MessageComposer {
   return async (input) => {
     const template = () =>
-      templateMessage({ contact: input.contact, config: input.version.config, offer: input.offer, ...(input.reason ? { reason: input.reason } : {}), ...(opts.timezone ? { timezone: opts.timezone } : {}) });
+      templateMessage({
+        contact: input.contact,
+        config: input.version.config,
+        offer: input.offer,
+        ...(input.reason ? { reason: input.reason } : {}),
+        ...(opts.timezone ? { timezone: opts.timezone } : {}),
+      });
     if (!opts.createAgent) return template();
     try {
       const text = (await opts.createAgent(input).generateText(outreachPrompt(input))).trim();

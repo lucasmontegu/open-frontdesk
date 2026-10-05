@@ -1,6 +1,6 @@
 import type { Action, Resource, Role } from "@ofd/core";
 import { createAccessControl } from "better-auth/plugins/access";
-import { defaultStatements, adminAc, ownerAc } from "better-auth/plugins/organization/access";
+import { adminAc, defaultStatements, ownerAc } from "better-auth/plugins/organization/access";
 
 /**
  * Permissions per resource. better-auth enforces the organization ones (members,
@@ -72,6 +72,8 @@ export const roles = {
 
 /** Whether a role may perform an action on a product resource. Unknown pairs are denied. */
 export function can(role: Role, resource: Resource, action: Action): boolean {
-  const granted = (roles[role].statements as Record<string, readonly string[] | undefined>)[resource];
+  const granted = (roles[role].statements as Record<string, readonly string[] | undefined>)[
+    resource
+  ];
   return granted?.includes(action) ?? false;
 }

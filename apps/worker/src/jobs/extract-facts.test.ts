@@ -2,11 +2,23 @@ import { describe, expect, it } from "vitest";
 import { FakeEvents, FakeFacts, ORG } from "../fakes.js";
 import { extractFacts } from "./extract-facts.js";
 
-async function conversation(events: FakeEvents, lines: Array<["customer" | "agent", string]>, at = new Date("2026-10-05T15:00:00Z")) {
+async function conversation(
+  events: FakeEvents,
+  lines: Array<["customer" | "agent", string]>,
+  at = new Date("2026-10-05T15:00:00Z"),
+) {
   for (const [role, text] of lines) {
     await events.append({
-      orgId: ORG, type: role === "customer" ? "customer.message" : "agent.message", payload: { text }, conversationId: "cv_1", botVersionId: "bv_1", contactId: "c1",
-      actorKind: role === "customer" ? "customer" : "bot", actorId: null, traceId: null, occurredAt: at,
+      orgId: ORG,
+      type: role === "customer" ? "customer.message" : "agent.message",
+      payload: { text },
+      conversationId: "cv_1",
+      botVersionId: "bv_1",
+      contactId: "c1",
+      actorKind: role === "customer" ? "customer" : "bot",
+      actorId: null,
+      traceId: null,
+      occurredAt: at,
     });
   }
 }
@@ -28,7 +40,9 @@ describe("conversation.extract_facts (rules)", () => {
     expect(byKey["appointment_confirmed"]?.value).toBe("true");
     for (const f of facts.items) {
       expect(f.sourceConversationId).toBe("cv_1");
-      expect(events.all.some((e) => e.id === f.sourceEventId && e.type === "customer.message")).toBe(true);
+      expect(
+        events.all.some((e) => e.id === f.sourceEventId && e.type === "customer.message"),
+      ).toBe(true);
       expect(f.confidence).toBeGreaterThan(0);
     }
     expect(events.ofType("fact.extracted")).toHaveLength(3);
@@ -56,21 +70,49 @@ describe("conversation.extract_facts (rules)", () => {
     const events = new FakeEvents();
     const facts = new FakeFacts();
     await conversation(events, [["customer", "Prefiero que me hablen a la tarde"]]);
-    await extractFacts({ events, facts, modelExtractor: async () => [{ key: "preferred_contact_hours", value: "tarde", confidence: 0.8, lineIndex: 0 }] }, { orgId: ORG, conversationId: "cv_1" });
+    await extractFacts(
+      {
+        events,
+        facts,
+        modelExtractor: async () => [
+          { key: "preferred_contact_hours", value: "tarde", confidence: 0.8, lineIndex: 0 },
+        ],
+      },
+      { orgId: ORG, conversationId: "cv_1" },
+    );
     expect(facts.items.map((f) => f.key)).toEqual(["preferred_contact_hours"]);
 
     const events2 = new FakeEvents();
     const facts2 = new FakeFacts();
     await conversation(events2, [["customer", "Pago hoy"]]);
-    await extractFacts({ events: events2, facts: facts2, modelExtractor: async () => { throw new Error("boom"); } }, { orgId: ORG, conversationId: "cv_1" });
+    await extractFacts(
+      {
+        events: events2,
+        facts: facts2,
+        modelExtractor: async () => {
+          throw new Error("boom");
+        },
+      },
+      { orgId: ORG, conversationId: "cv_1" },
+    );
     expect(facts2.items[0]?.key).toBe("promise_to_pay_date");
   });
 
   it("ignores model facts that point at agent lines", async () => {
     const events = new FakeEvents();
     const facts = new FakeFacts();
-    await conversation(events, [["agent", "Quedamos el lunes"], ["customer", "ok"]]);
-    await extractFacts({ events, facts, modelExtractor: async () => [{ key: "x_fact", value: "v", confidence: 0.9, lineIndex: 0 }] }, { orgId: ORG, conversationId: "cv_1" });
+    await conversation(events, [
+      ["agent", "Quedamos el lunes"],
+      ["customer", "ok"],
+    ]);
+    await extractFacts(
+      {
+        events,
+        facts,
+        modelExtractor: async () => [{ key: "x_fact", value: "v", confidence: 0.9, lineIndex: 0 }],
+      },
+      { orgId: ORG, conversationId: "cv_1" },
+    );
     expect(facts.items).toHaveLength(0);
   });
 });

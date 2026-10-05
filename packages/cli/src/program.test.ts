@@ -1,9 +1,9 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runReleaseGate } from "@ofd/evals";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { run, type CliDeps } from "./program.js";
+import { type CliDeps, run } from "./program.js";
 
 const dirs: string[] = [];
 const tmp = () => {
@@ -47,8 +47,16 @@ describe("ofd eval", () => {
 
   it("passes the model through to the conversation level", async () => {
     const h = harness();
-    const runGate = vi.fn(async () => ({ passed: true, score: 1, summary: "ok", failures: [], levels: { policy: "passed" as const, conversation: "passed" as const } }));
-    expect(await run(["eval", "cobranza-ar", "--model", "openai/gpt-5-mini"], { ...h.deps, runGate })).toBe(0);
+    const runGate = vi.fn(async () => ({
+      passed: true,
+      score: 1,
+      summary: "ok",
+      failures: [],
+      levels: { policy: "passed" as const, conversation: "passed" as const },
+    }));
+    expect(
+      await run(["eval", "cobranza-ar", "--model", "openai/gpt-5-mini"], { ...h.deps, runGate }),
+    ).toBe(0);
     expect(runGate.mock.calls[0]![0].conversation).toMatchObject({ model: "openai/gpt-5-mini" });
   });
 
@@ -56,7 +64,10 @@ describe("ofd eval", () => {
     const dir = join(tmp(), "mala-ar");
     const h = harness();
     expect(await run(["init", dir], h.deps)).toBe(0);
-    writeFileSync(join(dir, "policies.yaml"), "- id: solo-lectura\n  effect: allow\n  description: x\n  when: tool.effect == 'read'\n");
+    writeFileSync(
+      join(dir, "policies.yaml"),
+      "- id: solo-lectura\n  effect: allow\n  description: x\n  when: tool.effect == 'read'\n",
+    );
     h.out.length = 0;
     expect(await run(["eval", dir], h.deps)).toBe(1);
     expect(h.out.join("\n")).toContain("RECHAZADO");
@@ -90,7 +101,10 @@ describe("ofd packs", () => {
     expect(await run(["packs", "validate", dir], h.deps)).toBe(0);
     expect(h.out.join("\n")).toContain('Pack "mi-pack" válido');
 
-    writeFileSync(join(dir, "policies.yaml"), "- id: rota\n  effect: deny\n  when: tool.effect ==\n");
+    writeFileSync(
+      join(dir, "policies.yaml"),
+      "- id: rota\n  effect: deny\n  when: tool.effect ==\n",
+    );
     const h2 = harness();
     expect(await run(["packs", "validate", dir], h2.deps)).toBe(1);
     expect(h2.err.join("\n")).toContain("rota");

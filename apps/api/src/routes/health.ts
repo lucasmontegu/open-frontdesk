@@ -8,7 +8,10 @@ export function healthRoutes(container: Container) {
         () => "ok" as const,
         () => "down" as const,
       );
-    const [db, redis] = await Promise.all([probe(container.checks.db), probe(container.checks.redis)]);
+    const [db, redis] = await Promise.all([
+      probe(container.checks.db),
+      probe(container.checks.redis),
+    ]);
     const ok = db === "ok" && redis === "ok";
     return c.json({ status: ok ? "ok" : "degraded", db, redis }, ok ? 200 : 503);
   });

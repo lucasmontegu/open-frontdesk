@@ -15,8 +15,14 @@ export function renderProfileBlock(profile: ContactProfile | null): string {
   if (!profile) {
     return "## Lo que sabés de este cliente\nNo tenés datos previos de esta persona. No inventes información sobre ella.";
   }
-  const lines: string[] = ["## Lo que sabés de este cliente", `Nombre: ${profile.contact.displayName}`];
-  if (profile.contact.doNotCall) lines.push("Atención: pidió no ser contactado (No llame). No le ofrezcas llamadas ni mensajes salientes.");
+  const lines: string[] = [
+    "## Lo que sabés de este cliente",
+    `Nombre: ${profile.contact.displayName}`,
+  ];
+  if (profile.contact.doNotCall)
+    lines.push(
+      "Atención: pidió no ser contactado (No llame). No le ofrezcas llamadas ni mensajes salientes.",
+    );
   if (profile.contact.tags.length) lines.push(`Etiquetas: ${profile.contact.tags.join(", ")}`);
 
   if (profile.obligations.length) {
@@ -34,7 +40,10 @@ export function renderProfileBlock(profile: ContactProfile | null): string {
     lines.push("", "Resúmenes de conversaciones recientes:");
     for (const s of profile.recentSummaries) lines.push(`- ${s}`);
   }
-  lines.push("", "Usá estos datos con naturalidad. Si algo no figura acá, preguntalo en vez de suponerlo.");
+  lines.push(
+    "",
+    "Usá estos datos con naturalidad. Si algo no figura acá, preguntalo en vez de suponerlo.",
+  );
   return lines.join("\n");
 }
 

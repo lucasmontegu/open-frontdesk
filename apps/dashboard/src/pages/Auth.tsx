@@ -28,7 +28,10 @@ export function SignInPage() {
     const f = new FormData(e.currentTarget);
     setBusy(true);
     setError(null);
-    const res = await authClient.signIn.email({ email: String(f.get("email")), password: String(f.get("password")) });
+    const res = await authClient.signIn.email({
+      email: String(f.get("email")),
+      password: String(f.get("password")),
+    });
     setBusy(false);
     if (res.error) return setError(res.error.message ?? t.errors.unknown);
     await navigate({ to: "/" });
@@ -38,7 +41,13 @@ export function SignInPage() {
     <Shell title={t.auth.signInTitle}>
       <form onSubmit={submit} className="space-y-4">
         <Input label={t.auth.email} name="email" type="email" autoComplete="email" required />
-        <Input label={t.auth.password} name="password" type="password" autoComplete="current-password" required />
+        <Input
+          label={t.auth.password}
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+        />
         {error && <ErrorNote error={new Error(error)} />}
         <Button type="submit" disabled={busy} className="w-full">
           {t.auth.signIn}
@@ -91,7 +100,15 @@ export function SignUpPage() {
         <Input label={t.auth.yourName} name="name" autoComplete="name" required />
         <Input label={t.auth.orgName} name="org" required />
         <Input label={t.auth.email} name="email" type="email" autoComplete="email" required />
-        <Input label={t.auth.password} name="password" type="password" autoComplete="new-password" minLength={8} hint={t.auth.passwordHint} required />
+        <Input
+          label={t.auth.password}
+          name="password"
+          type="password"
+          autoComplete="new-password"
+          minLength={8}
+          hint={t.auth.passwordHint}
+          required
+        />
         {error && <ErrorNote error={new Error(error)} />}
         <Button type="submit" disabled={busy} className="w-full">
           {t.auth.signUp}

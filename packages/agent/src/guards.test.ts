@@ -3,7 +3,9 @@ import { inputGuard, outputGuard, SAFE_FALLBACK } from "./guards.js";
 
 describe("inputGuard", () => {
   it("redacts DNI, card, CBU", () => {
-    const r = inputGuard("DNI 30.123.456, tarjeta 4509 9535 6623 3704, cbu 0170099220000067797370, otro 12345678");
+    const r = inputGuard(
+      "DNI 30.123.456, tarjeta 4509 9535 6623 3704, cbu 0170099220000067797370, otro 12345678",
+    );
     expect(r.text).not.toMatch(/\d{7}/);
     expect(r.text).toContain("[TARJETA]");
     expect(r.text).toContain("[CBU/CVU]");
@@ -25,7 +27,9 @@ describe("outputGuard", () => {
     expect(r.text).toBe(SAFE_FALLBACK);
   });
   it("allows discounts within max", () => {
-    expect(outputGuard("Te puedo hacer un 10% de descuento", { maxDiscountPercent: 15 }).allowed).toBe(true);
+    expect(
+      outputGuard("Te puedo hacer un 10% de descuento", { maxDiscountPercent: 15 }).allowed,
+    ).toBe(true);
   });
   it("blocks legal threats", () => {
     expect(outputGuard("Si no paga vamos a iniciar acciones legales", {}).allowed).toBe(false);

@@ -1,13 +1,30 @@
-import { InMemoryCalendar, createBuiltinTools } from "@ofd/agent";
+import { createBuiltinTools, InMemoryCalendar } from "@ofd/agent";
 import { type Auth, createAuth } from "@ofd/auth";
-import { ConsoleMessagingProvider, KapsoWhatsAppProvider, LiveKitTelephonyProvider } from "@ofd/channels";
-import type { HoldStore, JobQueue, MessagingProvider, TelephonyProvider, ToolGateway } from "@ofd/core";
-import { type Repositories, createDb, createRepositories } from "@ofd/db";
+import {
+  ConsoleMessagingProvider,
+  KapsoWhatsAppProvider,
+  LiveKitTelephonyProvider,
+} from "@ofd/channels";
+import type {
+  HoldStore,
+  JobQueue,
+  MessagingProvider,
+  TelephonyProvider,
+  ToolGateway,
+} from "@ofd/core";
+import { createDb, createRepositories, type Repositories } from "@ofd/db";
 import { createToolGateway } from "@ofd/gateway";
-import { type Config, type Logger, PgBossJobQueue, RedisHoldStore, createLogger, createRedis } from "@ofd/infra";
+import {
+  type Config,
+  createLogger,
+  createRedis,
+  type Logger,
+  PgBossJobQueue,
+  RedisHoldStore,
+} from "@ofd/infra";
 import { getBuiltinPack } from "@ofd/packs";
 import { mergePolicies } from "./services/policies.js";
-import { type ReleaseGate, createReleaseGate } from "./services/release-gate.js";
+import { createReleaseGate, type ReleaseGate } from "./services/release-gate.js";
 
 export interface Container {
   config: Config;
@@ -96,7 +113,8 @@ export async function createContainer(config: Config): Promise<Container> {
           const c = await repos.contacts.get(orgId, contactId);
           return c ? { doNotCall: c.doNotCall, attributes: c.attributes } : null;
         },
-        policies: async (ctx) => mergePolicies(await repos.policies.rulesFor(ctx.orgId, botId), packRules),
+        policies: async (ctx) =>
+          mergePolicies(await repos.policies.rulesFor(ctx.orgId, botId), packRules),
       });
     },
     checks: {

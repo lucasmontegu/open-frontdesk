@@ -10,7 +10,9 @@ interface Call {
   body: unknown;
 }
 
-async function rig(respond: (c: Call) => { status?: number; json: unknown } = () => ({ json: { ok: true } })) {
+async function rig(
+  respond: (c: Call) => { status?: number; json: unknown } = () => ({ json: { ok: true } }),
+) {
   const calls: Call[] = [];
   const fakeFetch = (async (input: URL | string, init?: RequestInit) => {
     const call: Call = {
@@ -21,15 +23,25 @@ async function rig(respond: (c: Call) => { status?: number; json: unknown } = ()
     };
     calls.push(call);
     const r = respond(call);
-    return new Response(JSON.stringify(r.json), { status: r.status ?? 200, headers: { "content-type": "application/json" } });
+    return new Response(JSON.stringify(r.json), {
+      status: r.status ?? 200,
+      headers: { "content-type": "application/json" },
+    });
   }) as typeof fetch;
 
-  const server = createMcpServer({ baseUrl: "https://ofd.example/", apiKey: "k_123", fetch: fakeFetch });
+  const server = createMcpServer({
+    baseUrl: "https://ofd.example/",
+    apiKey: "k_123",
+    fetch: fakeFetch,
+  });
   const [a, b] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "test", version: "0" });
   await Promise.all([server.connect(a), client.connect(b)]);
   const call = async (name: string, args: Record<string, unknown> = {}) => {
-    const res = (await client.callTool({ name, arguments: args })) as { isError?: boolean; content: Array<{ type: string; text: string }> };
+    const res = (await client.callTool({ name, arguments: args })) as {
+      isError?: boolean;
+      content: Array<{ type: string; text: string }>;
+    };
     return { isError: res.isError ?? false, text: res.content[0]!.text };
   };
   return { calls, call, client };
@@ -39,7 +51,15 @@ describe("openfrontdesk mcp server", () => {
   it("exposes the tools", async () => {
     const { client } = await rig();
     const names = (await client.listTools()).tools.map((t) => t.name).sort();
-    expect(names).toEqual(["approve_mission", "create_bot_from_pack", "create_mission", "get_mission", "import_contacts_csv", "list_contacts", "list_packs"]);
+    expect(names).toEqual([
+      "approve_mission",
+      "create_bot_from_pack",
+      "create_mission",
+      "get_mission",
+      "import_contacts_csv",
+      "list_contacts",
+      "list_packs",
+    ]);
   });
 
   it("list_packs -> GET /api/packs with the bearer key", async () => {
@@ -53,19 +73,33 @@ describe("openfrontdesk mcp server", () => {
   });
 
   it("create_bot_from_pack -> POST /api/bots", async () => {
-    const { calls, call } = await rig(() => ({ status: 201, json: { id: "bot_1", name: "Cobranza" } }));
+    const { calls, call } = await rig(() => ({
+      status: 201,
+      json: { id: "bot_1", name: "Cobranza" },
+    }));
     await call("create_bot_from_pack", { name: "Cobranza", packId: "cobranza-ar" });
     expect(calls).toHaveLength(1);
-    expect(calls[0]).toMatchObject({ method: "POST", body: { name: "Cobranza", packId: "cobranza-ar" } });
+    expect(calls[0]).toMatchObject({
+      method: "POST",
+      body: { name: "Cobranza", packId: "cobranza-ar" },
+    });
     expect(calls[0]!.url.pathname).toBe("/api/bots");
   });
 
   it("create_bot_from_pack with publish reads the bot and publishes its latest version", async () => {
     const { calls, call } = await rig((c) =>
-      c.url.pathname === "/api/bots" ? { status: 201, json: { id: "bot_1" } } : c.method === "GET" ? { json: { bot: { id: "bot_1" }, versions: [{ id: "bv_1", version: 1 }] } } : { json: { version: { status: "published" } } },
+      c.url.pathname === "/api/bots"
+        ? { status: 201, json: { id: "bot_1" } }
+        : c.method === "GET"
+          ? { json: { bot: { id: "bot_1" }, versions: [{ id: "bv_1", version: 1 }] } }
+          : { json: { version: { status: "published" } } },
     );
     const r = await call("create_bot_from_pack", { name: "X", packId: "ventas-ar", publish: true });
-    expect(calls.map((c) => `${c.method} ${c.url.pathname}`)).toEqual(["POST /api/bots", "GET /api/bots/bot_1", "POST /api/bots/bot_1/versions/bv_1/publish"]);
+    expect(calls.map((c) => `${c.method} ${c.url.pathname}`)).toEqual([
+      "POST /api/bots",
+      "GET /api/bots/bot_1",
+      "POST /api/bots/bot_1/versions/bv_1/publish",
+    ]);
     expect(r.text).toContain("published");
   });
 
@@ -85,15 +119,28 @@ describe("openfrontdesk mcp server", () => {
 
   it("create_mission, get_mission and approve_mission hit the mission routes", async () => {
     const { calls, call } = await rig();
-    await call("create_mission", { botId: "bot_1", instruction: "Reprogramá los turnos de mañana" });
+    await call("create_mission", {
+      botId: "bot_1",
+      instruction: "Reprogramá los turnos de mañana",
+    });
     await call("get_mission", { missionId: "mis/1" });
     await call("approve_mission", { missionId: "mis_1" });
-    expect(calls.map((c) => `${c.method} ${c.url.pathname}`)).toEqual(["POST /api/missions", "GET /api/missions/mis%2F1", "POST /api/missions/mis_1/approve"]);
-    expect(calls[0]!.body).toEqual({ botId: "bot_1", instruction: "Reprogramá los turnos de mañana" });
+    expect(calls.map((c) => `${c.method} ${c.url.pathname}`)).toEqual([
+      "POST /api/missions",
+      "GET /api/missions/mis%2F1",
+      "POST /api/missions/mis_1/approve",
+    ]);
+    expect(calls[0]!.body).toEqual({
+      botId: "bot_1",
+      instruction: "Reprogramá los turnos de mañana",
+    });
   });
 
   it("returns API errors as readable tool errors", async () => {
-    const { call } = await rig(() => ({ status: 409, json: { error: { code: "conflict", message: "The bot has no published version" } } }));
+    const { call } = await rig(() => ({
+      status: 409,
+      json: { error: { code: "conflict", message: "The bot has no published version" } },
+    }));
     const r = await call("create_mission", { botId: "b", instruction: "x" });
     expect(r.isError).toBe(true);
     expect(r.text).toContain("409");

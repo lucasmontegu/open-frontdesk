@@ -1,8 +1,14 @@
-import { mkdirSync, mkdtempSync, writeFileSync, cpSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { BUILTIN_PACKS_DIR, PackError, getBuiltinPack, listBuiltinPacks, loadPack } from "./index.js";
+import {
+  BUILTIN_PACKS_DIR,
+  getBuiltinPack,
+  listBuiltinPacks,
+  loadPack,
+  PackError,
+} from "./index.js";
 
 describe("builtin packs", () => {
   const packs = listBuiltinPacks();

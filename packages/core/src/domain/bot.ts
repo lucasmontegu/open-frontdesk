@@ -47,7 +47,13 @@ export const BotConfig = z.object({
 });
 export type BotConfig = z.infer<typeof BotConfig>;
 
-export const BotVersionStatus = z.enum(["draft", "evaluating", "published", "rejected", "archived"]);
+export const BotVersionStatus = z.enum([
+  "draft",
+  "evaluating",
+  "published",
+  "rejected",
+  "archived",
+]);
 export type BotVersionStatus = z.infer<typeof BotVersionStatus>;
 
 export interface Bot {

@@ -2,7 +2,15 @@ import type { PolicyRule } from "@ofd/core";
 import { validateRule } from "@ofd/gateway";
 import { runPolicyLevel } from "./level1.js";
 import { runConversationLevelSafe } from "./level2.js";
-import type { AssertionCheck, EvalFailure, EvalRunResult, LevelResult, ReleaseGateInput, ScenarioInput, ScenarioResult } from "./types.js";
+import type {
+  AssertionCheck,
+  EvalFailure,
+  EvalRunResult,
+  LevelResult,
+  ReleaseGateInput,
+  ScenarioInput,
+  ScenarioResult,
+} from "./types.js";
 
 /** Runs one scenario at level 1 and, when `conversation` is given, at level 2. */
 export async function runScenario(input: ScenarioInput): Promise<ScenarioResult> {
@@ -18,11 +26,14 @@ export async function runScenario(input: ScenarioInput): Promise<ScenarioResult>
   return { scenarioId: scenario.id, title: scenario.title, policy, conversation };
 }
 
-const describeCheck = (c: AssertionCheck) => `${c.assertion.type} ${c.assertion.value}: ${c.reason ?? "falló"}`;
+const describeCheck = (c: AssertionCheck) =>
+  `${c.assertion.type} ${c.assertion.value}: ${c.reason ?? "falló"}`;
 
 function collect(scenarioId: string, level: LevelResult, prefix: string, failures: EvalFailure[]) {
   for (const e of level.errors) failures.push({ scenario: scenarioId, reason: `${prefix}${e}` });
-  for (const c of level.checks) if (c.status === "failed") failures.push({ scenario: scenarioId, reason: `${prefix}${describeCheck(c)}` });
+  for (const c of level.checks)
+    if (c.status === "failed")
+      failures.push({ scenario: scenarioId, reason: `${prefix}${describeCheck(c)}` });
 }
 
 /**
@@ -80,13 +91,24 @@ export async function runReleaseGate(input: ReleaseGateInput): Promise<EvalRunRe
 
   const parts = [
     `Política: ${policyOk ? "OK" : "FALLÓ"}`,
-    input.conversation ? `Conversación: ${conversationOk ? "OK" : "FALLÓ"}` : "Conversación: omitida",
+    input.conversation
+      ? `Conversación: ${conversationOk ? "OK" : "FALLÓ"}`
+      : "Conversación: omitida",
     `${passedCount}/${total} verificaciones correctas en ${input.scenarios.length} escenarios y ${input.policies.length} reglas`,
   ];
-  if (!input.conversation && deferredCount > 0) parts.push(`${deferredCount} verificaciones de comportamiento quedan para el nivel de conversación`);
+  if (!input.conversation && deferredCount > 0)
+    parts.push(
+      `${deferredCount} verificaciones de comportamiento quedan para el nivel de conversación`,
+    );
   if (failures.length > 0) parts.push(`${failures.length} fallas`);
 
-  return { passed, score, summary: `${parts.join(". ")}.`, failures, levels: { policy: policyOk ? "passed" : "failed", conversation: conversationLevel } };
+  return {
+    passed,
+    score,
+    summary: `${parts.join(". ")}.`,
+    failures,
+    levels: { policy: policyOk ? "passed" : "failed", conversation: conversationLevel },
+  };
 }
 
 /** Save-time check: the rules that do not compile with the gateway's CEL engine. */

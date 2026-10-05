@@ -14,9 +14,14 @@ import type {
 } from "@ofd/core";
 import type { Db } from "./client.js";
 import { PgBotRepository } from "./repos/bots.js";
-import { EvalRunRepository } from "./repos/eval-runs.js";
 import { PgContactRepository } from "./repos/contacts.js";
-import { PgContactFactRepository, PgObligationRepository, PgPortfolioRepository, PgProfileLoader } from "./repos/crm.js";
+import {
+  PgContactFactRepository,
+  PgObligationRepository,
+  PgPortfolioRepository,
+  PgProfileLoader,
+} from "./repos/crm.js";
+import { EvalRunRepository } from "./repos/eval-runs.js";
 import {
   PgConversationRepository,
   PgEventStore,
@@ -40,7 +45,10 @@ export interface Repositories {
   evalRuns: EvalRunRepository;
 }
 
-export function createRepositories(db: Db, opts: { embed?: Embed; clock?: Clock } = {}): Repositories {
+export function createRepositories(
+  db: Db,
+  opts: { embed?: Embed; clock?: Clock } = {},
+): Repositories {
   const contacts = new PgContactRepository(db);
   const obligations = new PgObligationRepository(db);
   const facts = new PgContactFactRepository(db);

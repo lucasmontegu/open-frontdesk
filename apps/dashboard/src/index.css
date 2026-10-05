@@ -49,8 +49,23 @@
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
-html, body, #root { min-height: 100%; }
-body { background: var(--bg); color: var(--fg); font-family: var(--font-sans); }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-dialog { color: var(--fg); }
-dialog::backdrop { background: rgb(0 0 0 / 0.5); }
+html,
+body,
+#root {
+  min-height: 100%;
+}
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+dialog {
+  color: var(--fg);
+}
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.5);
+}

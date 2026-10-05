@@ -1,5 +1,5 @@
-import { PgBoss } from "pg-boss";
 import type { JobName, JobQueue } from "@ofd/core";
+import { PgBoss } from "pg-boss";
 
 export const JOB_NAMES: readonly JobName[] = [
   "mission.plan",
@@ -10,7 +10,10 @@ export const JOB_NAMES: readonly JobName[] = [
   "crm.sync",
 ];
 
-export type JobHandler<T extends object = object> = (data: T, meta: { id: string; signal: AbortSignal }) => Promise<void>;
+export type JobHandler<T extends object = object> = (
+  data: T,
+  meta: { id: string; signal: AbortSignal },
+) => Promise<void>;
 
 export interface PgBossJobQueueOptions {
   connectionString: string;
@@ -24,7 +27,10 @@ export class PgBossJobQueue implements JobQueue {
   private started = false;
 
   constructor(opts: PgBossJobQueueOptions) {
-    this.boss = new PgBoss({ connectionString: opts.connectionString, schema: opts.schema ?? "pgboss" });
+    this.boss = new PgBoss({
+      connectionString: opts.connectionString,
+      schema: opts.schema ?? "pgboss",
+    });
     this.boss.on("error", (err) => opts.onError?.(err));
   }
 
@@ -56,9 +62,17 @@ export class PgBossJobQueue implements JobQueue {
   }
 
   /** Registers a worker. Jobs are handled one at a time; a thrown error fails the job (pg-boss retries). */
-  async work<T extends object>(name: JobName, handler: JobHandler<T>, opts?: { pollingIntervalSeconds?: number }): Promise<string> {
-    return this.boss.work<T>(name, { pollingIntervalSeconds: opts?.pollingIntervalSeconds ?? 2 }, async (jobs) => {
-      for (const job of jobs) await handler(job.data, { id: job.id, signal: job.signal });
-    });
+  async work<T extends object>(
+    name: JobName,
+    handler: JobHandler<T>,
+    opts?: { pollingIntervalSeconds?: number },
+  ): Promise<string> {
+    return this.boss.work<T>(
+      name,
+      { pollingIntervalSeconds: opts?.pollingIntervalSeconds ?? 2 },
+      async (jobs) => {
+        for (const job of jobs) await handler(job.data, { id: job.id, signal: job.signal });
+      },
+    );
   }
 }

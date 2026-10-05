@@ -29,23 +29,49 @@ export interface ListOptions {
 }
 
 export interface ContactRepository {
-  create(orgId: string, input: { displayName: string; identities: ContactIdentity[]; attributes?: Record<string, unknown>; tags?: string[]; doNotCall?: boolean }): Promise<Contact>;
+  create(
+    orgId: string,
+    input: {
+      displayName: string;
+      identities: ContactIdentity[];
+      attributes?: Record<string, unknown>;
+      tags?: string[];
+      doNotCall?: boolean;
+    },
+  ): Promise<Contact>;
   get(orgId: string, id: string): Promise<Contact | null>;
-  findByIdentity(orgId: string, identity: Pick<ContactIdentity, "kind" | "value">): Promise<Contact | null>;
-  update(orgId: string, id: string, patch: Partial<Pick<Contact, "displayName" | "attributes" | "tags" | "doNotCall">>): Promise<Contact>;
+  findByIdentity(
+    orgId: string,
+    identity: Pick<ContactIdentity, "kind" | "value">,
+  ): Promise<Contact | null>;
+  update(
+    orgId: string,
+    id: string,
+    patch: Partial<Pick<Contact, "displayName" | "attributes" | "tags" | "doNotCall">>,
+  ): Promise<Contact>;
   list(orgId: string, opts?: ListOptions & { search?: string }): Promise<Page<Contact>>;
 }
 
 export interface PortfolioRepository {
-  create(orgId: string, input: { name: string; owner?: string | null; rule: PortfolioRule }): Promise<Portfolio>;
+  create(
+    orgId: string,
+    input: { name: string; owner?: string | null; rule: PortfolioRule },
+  ): Promise<Portfolio>;
   get(orgId: string, id: string): Promise<Portfolio | null>;
   list(orgId: string): Promise<Portfolio[]>;
   /** Contacts and obligations that match the portfolio rule right now. */
-  members(orgId: string, id: string, opts?: ListOptions): Promise<Page<{ contact: Contact; obligation: Obligation }>>;
+  members(
+    orgId: string,
+    id: string,
+    opts?: ListOptions,
+  ): Promise<Page<{ contact: Contact; obligation: Obligation }>>;
 }
 
 export interface ObligationRepository {
-  upsert(orgId: string, input: Omit<Obligation, "id" | "orgId" | "createdAt" | "updatedAt"> & { id?: string }): Promise<Obligation>;
+  upsert(
+    orgId: string,
+    input: Omit<Obligation, "id" | "orgId" | "createdAt" | "updatedAt"> & { id?: string },
+  ): Promise<Obligation>;
   listByContact(orgId: string, contactId: string): Promise<Obligation[]>;
 }
 
@@ -66,7 +92,12 @@ export interface BotRepository {
   createVersion(orgId: string, botId: string, config: BotConfig): Promise<BotVersion>;
   getVersion(orgId: string, versionId: string): Promise<BotVersion | null>;
   listVersions(orgId: string, botId: string): Promise<BotVersion[]>;
-  setVersionStatus(orgId: string, versionId: string, status: BotVersionStatus, evalRunId?: string | null): Promise<BotVersion>;
+  setVersionStatus(
+    orgId: string,
+    versionId: string,
+    status: BotVersionStatus,
+    evalRunId?: string | null,
+  ): Promise<BotVersion>;
   /** Only callable after the version's eval run passed. */
   publish(orgId: string, botId: string, versionId: string): Promise<Bot>;
 }
@@ -74,11 +105,23 @@ export interface BotRepository {
 export interface EventStore {
   append<T extends EventType>(event: NewEvent<T>): Promise<InteractionEvent<T>>;
   listByConversation(orgId: string, conversationId: string): Promise<InteractionEvent[]>;
-  list(orgId: string, opts?: ListOptions & { types?: EventType[]; contactId?: string }): Promise<Page<InteractionEvent>>;
+  list(
+    orgId: string,
+    opts?: ListOptions & { types?: EventType[]; contactId?: string },
+  ): Promise<Page<InteractionEvent>>;
 }
 
 export interface ConversationRepository {
-  start(orgId: string, input: { channel: string; contactId: string | null; botVersionId: string; direction: "inbound" | "outbound"; missionId?: string | null }): Promise<{ id: string }>;
+  start(
+    orgId: string,
+    input: {
+      channel: string;
+      contactId: string | null;
+      botVersionId: string;
+      direction: "inbound" | "outbound";
+      missionId?: string | null;
+    },
+  ): Promise<{ id: string }>;
   end(orgId: string, id: string, outcome: string, summary?: string): Promise<void>;
 }
 
@@ -89,16 +132,30 @@ export interface PolicyRepository {
 }
 
 export interface MissionRepository {
-  create(orgId: string, input: { botId: string; createdBy: string; instruction: string }): Promise<Mission>;
+  create(
+    orgId: string,
+    input: { botId: string; createdBy: string; instruction: string },
+  ): Promise<Mission>;
   get(orgId: string, id: string): Promise<Mission | null>;
   list(orgId: string): Promise<Mission[]>;
-  update(orgId: string, id: string, patch: Partial<Pick<Mission, "status" | "plan" | "report">>): Promise<Mission>;
+  update(
+    orgId: string,
+    id: string,
+    patch: Partial<Pick<Mission, "status" | "plan" | "report">>,
+  ): Promise<Mission>;
 }
 
 export interface KnowledgeSearch {
   /** Hybrid search: BM25 (pg_textsearch) + vector similarity (pgvector). */
-  search(orgId: string, query: string, opts?: { limit?: number; botId?: string }): Promise<Array<{ id: string; title: string; content: string; score: number }>>;
-  ingest(orgId: string, doc: { title: string; content: string; botId?: string | null }): Promise<{ id: string }>;
+  search(
+    orgId: string,
+    query: string,
+    opts?: { limit?: number; botId?: string },
+  ): Promise<Array<{ id: string; title: string; content: string; score: number }>>;
+  ingest(
+    orgId: string,
+    doc: { title: string; content: string; botId?: string | null },
+  ): Promise<{ id: string }>;
 }
 
 /** Short-lived holds so the same slot is never offered to two contacts. Backed by Redis. */
@@ -109,24 +166,53 @@ export interface HoldStore {
 
 export interface MessagingProvider {
   readonly id: string;
-  send(input: { orgId: string; to: string; text: string; conversationId: string }): Promise<{ providerMessageId: string }>;
+  send(input: {
+    orgId: string;
+    to: string;
+    text: string;
+    conversationId: string;
+  }): Promise<{ providerMessageId: string }>;
 }
 
 export interface TelephonyProvider {
   readonly id: string;
   /** Places an outbound call and dispatches the voice agent into it. */
-  dial(input: { orgId: string; to: string; botVersionId: string; conversationId: string; context?: Record<string, unknown> }): Promise<{ callId: string }>;
+  dial(input: {
+    orgId: string;
+    to: string;
+    botVersionId: string;
+    conversationId: string;
+    context?: Record<string, unknown>;
+  }): Promise<{ callId: string }>;
 }
 
 /** External CRM sync. The canonical model stays local; connectors mirror and write back. */
 export interface CrmConnector {
   readonly id: string;
-  pull(orgId: string, since: Date | null): AsyncIterable<{ contact: Omit<Contact, "id" | "orgId" | "createdAt" | "updatedAt">; obligations: Array<Omit<Obligation, "id" | "orgId" | "contactId" | "createdAt" | "updatedAt">> }>;
-  pushOutcome(orgId: string, input: { externalContactId: string; summary: string; outcome: string; facts: Array<{ key: string; value: string }> }): Promise<void>;
+  pull(
+    orgId: string,
+    since: Date | null,
+  ): AsyncIterable<{
+    contact: Omit<Contact, "id" | "orgId" | "createdAt" | "updatedAt">;
+    obligations: Array<Omit<Obligation, "id" | "orgId" | "contactId" | "createdAt" | "updatedAt">>;
+  }>;
+  pushOutcome(
+    orgId: string,
+    input: {
+      externalContactId: string;
+      summary: string;
+      outcome: string;
+      facts: Array<{ key: string; value: string }>;
+    },
+  ): Promise<void>;
 }
 
 export interface JobQueue {
-  enqueue<T extends object>(name: JobName, data: T, opts?: { startAfterSeconds?: number; singletonKey?: string }): Promise<string>;
+  enqueue<T extends object>(
+    name: JobName,
+    data: T,
+    opts?: { startAfterSeconds?: number; singletonKey?: string },
+  ): Promise<string>;
 }
 
 export type JobName =

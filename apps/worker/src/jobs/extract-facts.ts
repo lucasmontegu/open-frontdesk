@@ -1,9 +1,17 @@
-import { z } from "zod";
 import type { ContactFactRepository, EventStore, InteractionEvent } from "@ofd/core";
+import { z } from "zod";
 import { appendSystemEvent, type Log, PermanentJobError, silentLog } from "../deps.js";
-import { extractFactsWithRules, type ModelFactExtractor, type RawFact, type TranscriptLine } from "../facts.js";
+import {
+  extractFactsWithRules,
+  type ModelFactExtractor,
+  type RawFact,
+  type TranscriptLine,
+} from "../facts.js";
 
-export const ExtractFactsJob = z.object({ orgId: z.string().min(1), conversationId: z.string().min(1) });
+export const ExtractFactsJob = z.object({
+  orgId: z.string().min(1),
+  conversationId: z.string().min(1),
+});
 
 export interface ExtractFactsDeps {
   events: EventStore;
@@ -19,17 +27,27 @@ function toTranscript(events: InteractionEvent[]): TranscriptLine[] {
   for (const e of events) {
     if (e.type !== "customer.message" && e.type !== "agent.message") continue;
     const text = (e.payload as { text: string }).text;
-    lines.push({ index: lines.length, eventId: e.id, role: e.type === "customer.message" ? "customer" : "agent", text, at: e.occurredAt });
+    lines.push({
+      index: lines.length,
+      eventId: e.id,
+      role: e.type === "customer.message" ? "customer" : "agent",
+      text,
+      at: e.occurredAt,
+    });
   }
   return lines;
 }
 
-export async function extractFacts(deps: ExtractFactsDeps, data: unknown): Promise<{ stored: number }> {
+export async function extractFacts(
+  deps: ExtractFactsDeps,
+  data: unknown,
+): Promise<{ stored: number }> {
   const { orgId, conversationId } = ExtractFactsJob.parse(data);
   const log = deps.log ?? silentLog;
 
   const events = await deps.events.listByConversation(orgId, conversationId);
-  if (events.length === 0) throw new PermanentJobError(`conversation ${conversationId} has no events`);
+  if (events.length === 0)
+    throw new PermanentJobError(`conversation ${conversationId} has no events`);
   const contactId = events.find((e) => e.contactId)?.contactId ?? null;
   if (!contactId) {
     log.info({ conversationId }, "extract_facts: conversation has no identified contact");
@@ -43,7 +61,10 @@ export async function extractFacts(deps: ExtractFactsDeps, data: unknown): Promi
     try {
       raw = await deps.modelExtractor(lines);
     } catch (err) {
-      log.warn({ conversationId, err: err instanceof Error ? err.message : String(err) }, "extract_facts: model failed, using rules");
+      log.warn(
+        { conversationId, err: err instanceof Error ? err.message : String(err) },
+        "extract_facts: model failed, using rules",
+      );
       raw = extractFactsWithRules(lines, { ...(deps.timezone ? { timezone: deps.timezone } : {}) });
     }
   } else {

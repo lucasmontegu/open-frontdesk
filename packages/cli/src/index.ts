@@ -1,3 +1,3 @@
-export { buildProgram, run, defaultDeps, formatGateResult, EVAL_ORG_ID } from "./program.js";
+export { resolvePack, scaffoldPack, validatePackDir } from "./packs.js";
 export type { CliDeps } from "./program.js";
-export { resolvePack, validatePackDir, scaffoldPack } from "./packs.js";
+export { buildProgram, defaultDeps, EVAL_ORG_ID, formatGateResult, run } from "./program.js";

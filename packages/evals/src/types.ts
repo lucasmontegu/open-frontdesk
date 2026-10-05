@@ -1,5 +1,5 @@
-import type { BotVersion, PolicyRule } from "@ofd/core";
 import type { LanguageModel } from "@ofd/agent";
+import type { BotVersion, PolicyRule } from "@ofd/core";
 import type { Assertion, EvalScenario } from "@ofd/packs";
 
 export interface EvalFailure {

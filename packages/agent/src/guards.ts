@@ -1,16 +1,37 @@
-import type { EventStore } from "@ofd/core";
 import type { MastraDBMessage } from "@mastra/core/memory";
-import type { Processor, ProcessInputArgs, ProcessOutputResultArgs } from "@mastra/core/processors";
+import type { ProcessInputArgs, ProcessOutputResultArgs, Processor } from "@mastra/core/processors";
+import type { EventStore } from "@ofd/core";
 
 /** Phrases (Spanish and English) that usually signal an attempt to override the bot's instructions. */
 const INJECTION_PATTERNS: Array<{ id: string; re: RegExp }> = [
-  { id: "ignore_instructions", re: /ignor[aá]\w*\s+(todas?\s+)?(las\s+|tus\s+)?(instrucciones|reglas|indicaciones)/i },
-  { id: "ignore_instructions_en", re: /ignore\s+(all\s+|any\s+)?(previous|prior|above|your)\s+(instructions|rules|prompts?)/i },
-  { id: "forget_instructions", re: /olvid[aá]\w*\s+(todo\s+)?(lo\s+anterior|tus\s+instrucciones|las\s+instrucciones)/i },
-  { id: "reveal_prompt", re: /(mostr[aá]\w*|revel[aá]\w*|dec[ií]\w*|repet[ií]\w*|imprim[ií]\w*)\s+(tu|el|las)\s+(system\s*prompt|prompt|instrucciones)/i },
-  { id: "reveal_prompt_en", re: /(show|reveal|print|repeat)\s+(me\s+)?(your|the)\s+(system\s+)?(prompt|instructions)/i },
-  { id: "role_override", re: /(ahora\s+)?(sos|eres|actu[aá]\s+como|act\s+as|you\s+are\s+now)\s+(un\s+|una\s+)?(dan|admin|administrador|desarrollador|developer|sin\s+restricciones)/i },
-  { id: "jailbreak", re: /\b(jailbreak|modo\s+desarrollador|developer\s+mode|do\s+anything\s+now)\b/i },
+  {
+    id: "ignore_instructions",
+    re: /ignor[aá]\w*\s+(todas?\s+)?(las\s+|tus\s+)?(instrucciones|reglas|indicaciones)/i,
+  },
+  {
+    id: "ignore_instructions_en",
+    re: /ignore\s+(all\s+|any\s+)?(previous|prior|above|your)\s+(instructions|rules|prompts?)/i,
+  },
+  {
+    id: "forget_instructions",
+    re: /olvid[aá]\w*\s+(todo\s+)?(lo\s+anterior|tus\s+instrucciones|las\s+instrucciones)/i,
+  },
+  {
+    id: "reveal_prompt",
+    re: /(mostr[aá]\w*|revel[aá]\w*|dec[ií]\w*|repet[ií]\w*|imprim[ií]\w*)\s+(tu|el|las)\s+(system\s*prompt|prompt|instrucciones)/i,
+  },
+  {
+    id: "reveal_prompt_en",
+    re: /(show|reveal|print|repeat)\s+(me\s+)?(your|the)\s+(system\s+)?(prompt|instructions)/i,
+  },
+  {
+    id: "role_override",
+    re: /(ahora\s+)?(sos|eres|actu[aá]\s+como|act\s+as|you\s+are\s+now)\s+(un\s+|una\s+)?(dan|admin|administrador|desarrollador|developer|sin\s+restricciones)/i,
+  },
+  {
+    id: "jailbreak",
+    re: /\b(jailbreak|modo\s+desarrollador|developer\s+mode|do\s+anything\s+now)\b/i,
+  },
   { id: "fake_system", re: /(^|\n)\s*(system|sistema)\s*:/i },
 ];
 
@@ -60,7 +81,8 @@ export interface OutputGuardResult {
   reason?: string;
 }
 
-export const SAFE_FALLBACK = "Disculpá, eso no lo puedo confirmar yo. Te paso con una persona del equipo para que lo vea con vos.";
+export const SAFE_FALLBACK =
+  "Disculpá, eso no lo puedo confirmar yo. Te paso con una persona del equipo para que lo vea con vos.";
 
 const LEGAL_THREAT =
   /\b(demanda\w*|demandar\w*|juicio|abogad\w*|acci[oó]n\s+legal|acciones\s+legales|embarg\w+|denuncia\w*|justicia|tribunal\w*|carta\s+documento|bur[oó]\s+de\s+cr[eé]dito|veraz|nosis)\b/i;
@@ -68,7 +90,11 @@ const DISCOUNT = /(\d{1,3}(?:[.,]\d+)?)\s*(?:%|por\s*ciento)/g;
 const DISCOUNT_CONTEXT = /(descuent|quita|bonificaci|rebaja|condonaci|te\s+perdon|perdon)/i;
 
 export function outputGuard(text: string, rules: OutputRules = {}): OutputGuardResult {
-  const block = (reason: string): OutputGuardResult => ({ allowed: false, text: SAFE_FALLBACK, reason });
+  const block = (reason: string): OutputGuardResult => ({
+    allowed: false,
+    text: SAFE_FALLBACK,
+    reason,
+  });
 
   const maxDiscount = rules.maxDiscountPercent ?? 0;
   for (const sentence of text.split(/(?<=[.!?\n])\s+/)) {
@@ -97,7 +123,9 @@ function textOf(m: MastraDBMessage): string {
 }
 
 function mapText(m: MastraDBMessage, fn: (t: string) => string): MastraDBMessage {
-  const parts = (m.content.parts ?? []).map((p) => (p.type === "text" ? { ...p, text: fn(p.text) } : p));
+  const parts = (m.content.parts ?? []).map((p) =>
+    p.type === "text" ? { ...p, text: fn(p.text) } : p,
+  );
   const content = typeof m.content.content === "string" ? fn(m.content.content) : m.content.content;
   return { ...m, content: { ...m.content, parts, content } };
 }
@@ -105,7 +133,10 @@ function mapText(m: MastraDBMessage, fn: (t: string) => string): MastraDBMessage
 /** Mastra processor: redacts and flags the customer's latest messages before the model sees them. */
 export class FrontDeskInputGuard implements Processor<"ofd-input-guard"> {
   readonly id = "ofd-input-guard" as const;
-  constructor(private readonly ctx: GuardContext, private readonly events?: EventStore) {}
+  constructor(
+    private readonly ctx: GuardContext,
+    private readonly events?: EventStore,
+  ) {}
 
   async processInput({ messages }: ProcessInputArgs): Promise<MastraDBMessage[]> {
     const out: MastraDBMessage[] = [];
@@ -115,7 +146,10 @@ export class FrontDeskInputGuard implements Processor<"ofd-input-guard"> {
         continue;
       }
       const res = inputGuard(textOf(m));
-      if (res.flagged) await appendGuardEvent(this.events, this.ctx, "guard.input_flagged", { reason: res.reasons.join(",") });
+      if (res.flagged)
+        await appendGuardEvent(this.events, this.ctx, "guard.input_flagged", {
+          reason: res.reasons.join(","),
+        });
       out.push(res.redacted.length || res.flagged ? mapText(m, (t) => inputGuard(t).text) : m);
     }
     return out;
@@ -125,7 +159,11 @@ export class FrontDeskInputGuard implements Processor<"ofd-input-guard"> {
 /** Mastra processor: replaces a reply that breaks policy with a safe handoff message. */
 export class FrontDeskOutputGuard implements Processor<"ofd-output-guard"> {
   readonly id = "ofd-output-guard" as const;
-  constructor(private readonly rules: OutputRules, private readonly ctx: GuardContext, private readonly events?: EventStore) {}
+  constructor(
+    private readonly rules: OutputRules,
+    private readonly ctx: GuardContext,
+    private readonly events?: EventStore,
+  ) {}
 
   async processOutputResult({ messages }: ProcessOutputResultArgs): Promise<MastraDBMessage[]> {
     const out: MastraDBMessage[] = [];
@@ -140,10 +178,16 @@ export class FrontDeskOutputGuard implements Processor<"ofd-output-guard"> {
         out.push(m);
         continue;
       }
-      await appendGuardEvent(this.events, this.ctx, "guard.output_blocked", { reason: res.reason ?? "blocked", text: original });
+      await appendGuardEvent(this.events, this.ctx, "guard.output_blocked", {
+        reason: res.reason ?? "blocked",
+        text: original,
+      });
       const replaced = mapText(m, () => res.text);
       // Collapse to a single text part so the safe message is not followed by leftover original parts.
-      out.push({ ...replaced, content: { ...replaced.content, parts: [{ type: "text", text: res.text }] } });
+      out.push({
+        ...replaced,
+        content: { ...replaced.content, parts: [{ type: "text", text: res.text }] },
+      });
     }
     return out;
   }
@@ -170,14 +214,28 @@ async function appendGuardEvent(
 }
 
 /** Convenience for non-Mastra callers (voice cascade, tests): guard plus event in one call. */
-export async function guardInput(text: string, ctx: GuardContext, events?: EventStore): Promise<InputGuardResult> {
+export async function guardInput(
+  text: string,
+  ctx: GuardContext,
+  events?: EventStore,
+): Promise<InputGuardResult> {
   const res = inputGuard(text);
-  if (res.flagged) await appendGuardEvent(events, ctx, "guard.input_flagged", { reason: res.reasons.join(",") });
+  if (res.flagged)
+    await appendGuardEvent(events, ctx, "guard.input_flagged", { reason: res.reasons.join(",") });
   return res;
 }
 
-export async function guardOutput(text: string, rules: OutputRules, ctx: GuardContext, events?: EventStore): Promise<OutputGuardResult> {
+export async function guardOutput(
+  text: string,
+  rules: OutputRules,
+  ctx: GuardContext,
+  events?: EventStore,
+): Promise<OutputGuardResult> {
   const res = outputGuard(text, rules);
-  if (!res.allowed) await appendGuardEvent(events, ctx, "guard.output_blocked", { reason: res.reason ?? "blocked", text });
+  if (!res.allowed)
+    await appendGuardEvent(events, ctx, "guard.output_blocked", {
+      reason: res.reason ?? "blocked",
+      text,
+    });
   return res;
 }

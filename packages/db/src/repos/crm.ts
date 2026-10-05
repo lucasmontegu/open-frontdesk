@@ -92,21 +92,37 @@ export class PgObligationRepository implements ObligationRepository {
 export class PgPortfolioRepository implements PortfolioRepository {
   constructor(private readonly db: Db) {}
 
-  async create(orgId: string, input: { name: string; owner?: string | null; rule: PortfolioRule }): Promise<Portfolio> {
+  async create(
+    orgId: string,
+    input: { name: string; owner?: string | null; rule: PortfolioRule },
+  ): Promise<Portfolio> {
     const rows = await this.db
       .insert(portfolios)
-      .values({ id: newId("pf"), orgId, name: input.name, owner: input.owner ?? null, rule: input.rule })
+      .values({
+        id: newId("pf"),
+        orgId,
+        name: input.name,
+        owner: input.owner ?? null,
+        rule: input.rule,
+      })
       .returning();
     return toPortfolio(rows[0] as typeof portfolios.$inferSelect);
   }
 
   async get(orgId: string, id: string): Promise<Portfolio | null> {
-    const rows = await this.db.select().from(portfolios).where(and(eq(portfolios.orgId, orgId), eq(portfolios.id, id)));
+    const rows = await this.db
+      .select()
+      .from(portfolios)
+      .where(and(eq(portfolios.orgId, orgId), eq(portfolios.id, id)));
     return rows[0] ? toPortfolio(rows[0]) : null;
   }
 
   async list(orgId: string): Promise<Portfolio[]> {
-    const rows = await this.db.select().from(portfolios).where(eq(portfolios.orgId, orgId)).orderBy(asc(portfolios.createdAt));
+    const rows = await this.db
+      .select()
+      .from(portfolios)
+      .where(eq(portfolios.orgId, orgId))
+      .orderBy(asc(portfolios.createdAt));
     return rows.map(toPortfolio);
   }
 
@@ -133,7 +149,12 @@ export class PgPortfolioRepository implements PortfolioRepository {
     if (minAmount !== undefined) conds.push(gte(obligations.amount, String(minAmount)));
     if (stages && stages.length > 0) conds.push(inArray(obligations.stage, stages));
     if (tags && tags.length > 0) {
-      conds.push(sql`${contacts.tags} && ARRAY[${sql.join(tags.map((t) => sql`${t}`), sql`, `)}]::text[]`);
+      conds.push(
+        sql`${contacts.tags} && ARRAY[${sql.join(
+          tags.map((t) => sql`${t}`),
+          sql`, `,
+        )}]::text[]`,
+      );
     }
     const cur = decodeCursor(opts.cursor, 1);
     if (cur) conds.push(gt(obligations.id, cur[0] as string));
@@ -146,9 +167,16 @@ export class PgPortfolioRepository implements PortfolioRepository {
       .orderBy(asc(obligations.id))
       .limit(limit + 1);
     const page = toPage(rows, limit, (r) => Buffer.from(r.obligation.id).toString("base64url"));
-    const hydrated = await hydrateContacts(this.db, orgId, page.items.map((r) => r.contact));
+    const hydrated = await hydrateContacts(
+      this.db,
+      orgId,
+      page.items.map((r) => r.contact),
+    );
     return {
-      items: page.items.map((r, i) => ({ contact: hydrated[i] as never, obligation: toObligation(r.obligation) })),
+      items: page.items.map((r, i) => ({
+        contact: hydrated[i] as never,
+        obligation: toObligation(r.obligation),
+      })),
       nextCursor: page.nextCursor,
     };
   }
@@ -157,7 +185,10 @@ export class PgPortfolioRepository implements PortfolioRepository {
 export class PgContactFactRepository implements ContactFactRepository {
   constructor(private readonly db: Db) {}
 
-  async add(orgId: string, fact: Omit<ContactFact, "id" | "orgId" | "createdAt">): Promise<ContactFact> {
+  async add(
+    orgId: string,
+    fact: Omit<ContactFact, "id" | "orgId" | "createdAt">,
+  ): Promise<ContactFact> {
     const rows = await this.db
       .insert(contactFacts)
       .values({ id: newId("cf"), orgId, createdAt: new Date(), ...fact })
@@ -177,7 +208,9 @@ export class PgContactFactRepository implements ContactFactRepository {
 export class PgProfileLoader implements ProfileLoader {
   constructor(
     private readonly db: Db,
-    private readonly contactsRepo: { get(orgId: string, id: string): Promise<import("@ofd/core").Contact | null> },
+    private readonly contactsRepo: {
+      get(orgId: string, id: string): Promise<import("@ofd/core").Contact | null>;
+    },
     private readonly obligationsRepo: ObligationRepository,
     private readonly factsRepo: ContactFactRepository,
   ) {}
@@ -191,7 +224,13 @@ export class PgProfileLoader implements ProfileLoader {
       this.db
         .select({ summary: conversations.summary })
         .from(conversations)
-        .where(and(eq(conversations.orgId, orgId), eq(conversations.contactId, contactId), isNotNull(conversations.summary)))
+        .where(
+          and(
+            eq(conversations.orgId, orgId),
+            eq(conversations.contactId, contactId),
+            isNotNull(conversations.summary),
+          ),
+        )
         .orderBy(desc(conversations.startedAt))
         .limit(3),
     ]);

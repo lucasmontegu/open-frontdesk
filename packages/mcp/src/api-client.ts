@@ -29,9 +29,14 @@ export class ApiClient {
     this.fetchFn = opts.fetch ?? fetch;
   }
 
-  async request<T = unknown>(method: "GET" | "POST", path: string, opts: { query?: Record<string, string | number | undefined>; body?: unknown } = {}): Promise<T> {
+  async request<T = unknown>(
+    method: "GET" | "POST",
+    path: string,
+    opts: { query?: Record<string, string | number | undefined>; body?: unknown } = {},
+  ): Promise<T> {
     const url = new URL(`${this.baseUrl}/api${path}`);
-    for (const [k, v] of Object.entries(opts.query ?? {})) if (v !== undefined && v !== "") url.searchParams.set(k, String(v));
+    for (const [k, v] of Object.entries(opts.query ?? {}))
+      if (v !== undefined && v !== "") url.searchParams.set(k, String(v));
 
     let res: Response;
     try {
@@ -45,7 +50,11 @@ export class ApiClient {
         ...(opts.body !== undefined ? { body: JSON.stringify(opts.body) } : {}),
       });
     } catch (e) {
-      throw new ApiError(0, "network_error", `Could not reach the API at ${this.baseUrl}: ${e instanceof Error ? e.message : String(e)}`);
+      throw new ApiError(
+        0,
+        "network_error",
+        `Could not reach the API at ${this.baseUrl}: ${e instanceof Error ? e.message : String(e)}`,
+      );
     }
 
     const text = await res.text();
@@ -58,8 +67,15 @@ export class ApiClient {
       }
     }
     if (!res.ok) {
-      const err = (json as { error?: { code?: string; message?: string; details?: unknown } } | null)?.error;
-      throw new ApiError(res.status, err?.code ?? `http_${res.status}`, err?.message ?? `The API answered ${res.status}`, err?.details ?? json);
+      const err = (
+        json as { error?: { code?: string; message?: string; details?: unknown } } | null
+      )?.error;
+      throw new ApiError(
+        res.status,
+        err?.code ?? `http_${res.status}`,
+        err?.message ?? `The API answered ${res.status}`,
+        err?.details ?? json,
+      );
     }
     return json as T;
   }

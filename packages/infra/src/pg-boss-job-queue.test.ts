@@ -16,7 +16,9 @@ describe("PgBossJobQueue", () => {
   it("delivers an enqueued job to a worker", async () => {
     await queue.start();
     const received = new Promise<{ n: number }>((resolve) => {
-      void queue.work<{ n: number }>("crm.sync", async (data) => resolve(data), { pollingIntervalSeconds: 0.5 });
+      void queue.work<{ n: number }>("crm.sync", async (data) => resolve(data), {
+        pollingIntervalSeconds: 0.5,
+      });
     });
     const id = await queue.enqueue("crm.sync", { n: 42 });
     expect(id).toBeTruthy();

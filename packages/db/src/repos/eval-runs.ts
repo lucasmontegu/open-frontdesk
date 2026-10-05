@@ -61,7 +61,10 @@ export class EvalRunRepository {
   }
 
   async get(orgId: string, id: string): Promise<EvalRunRow | null> {
-    const rows = await this.db.select().from(evalRuns).where(and(eq(evalRuns.orgId, orgId), eq(evalRuns.id, id)));
+    const rows = await this.db
+      .select()
+      .from(evalRuns)
+      .where(and(eq(evalRuns.orgId, orgId), eq(evalRuns.id, id)));
     return rows[0] ? toRow(rows[0]) : null;
   }
 

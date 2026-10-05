@@ -18,19 +18,19 @@
  * interrupted agent speech; recorded agent text is what the model streamed, which can include words
  * cut off by barge-in. TODO: reconcile with LiveKit's committed transcript if the difference matters.
  */
-import { VOICE_AGENT_NAME } from "@ofd/channels";
+
 import { fileURLToPath } from "node:url";
 import type { AgentDefinition } from "@livekit/agents";
+import { turnDetector } from "@livekit/agents-plugin-livekit";
 import { Mastra } from "@mastra/core/mastra";
 import { createLiveKitWorker, runLiveKitWorker } from "@mastra/livekit/worker";
-import { turnDetector } from "@livekit/agents-plugin-livekit";
+import { VOICE_AGENT_NAME } from "@ofd/channels";
+import { type PreparedCall, prepareCall } from "./call.js";
+import { type Container, createContainer } from "./container.js";
 import { parseDispatchMetadata } from "./dispatch.js";
-import { prepareCall, type PreparedCall } from "./call.js";
-import { createContainer, type Container } from "./container.js";
 import { finishCall, recordTurn } from "./events.js";
 import { parseSipParticipant } from "./inbound.js";
 import { toolFeedback } from "./voice-plugins.js";
-
 
 let containerPromise: Promise<Container> | null = null;
 const getContainer = () => (containerPromise ??= createContainer());
@@ -64,12 +64,24 @@ const worker: AgentDefinition<any> = createLiveKitWorker({
       // Inbound SIP: the caller is the first participant to join.
       await ctx.connect();
       const caller = parseSipParticipant(await ctx.waitForParticipant());
-      request = { kind: "inbound", callerPhone: caller.callerPhone, calledNumber: caller.calledNumber };
+      request = {
+        kind: "inbound",
+        callerPhone: caller.callerPhone,
+        calledNumber: caller.calledNumber,
+      };
     }
     const call = await prepareCall(container.callDeps, request);
     callsByJob.set(ctx.job.id, call);
     callsByConversation.set(call.conversationId, call);
-    container.log.info({ conversationId: call.conversationId, direction: call.direction, contactId: call.contactId, botVersionId: call.version.id }, "voice call starting");
+    container.log.info(
+      {
+        conversationId: call.conversationId,
+        direction: call.direction,
+        contactId: call.contactId,
+        botVersionId: call.version.id,
+      },
+      "voice call starting",
+    );
     return call.agent as never;
   },
 
@@ -79,14 +91,21 @@ const worker: AgentDefinition<any> = createLiveKitWorker({
   },
 
   configuration: {
-    greeting: { text: ({ ctx }) => greetingFor(callsByJob.get(ctx.job.id) as PreparedCall), allowInterruptions: false },
+    greeting: {
+      text: ({ ctx }) => greetingFor(callsByJob.get(ctx.job.id) as PreparedCall),
+      allowInterruptions: false,
+    },
     stt: async ({ ctx }) => {
       const call = callsByJob.get(ctx.job.id);
-      return call ? ((await getContainer()).voice.stt(call.version.config.voice) as never) : undefined;
+      return call
+        ? ((await getContainer()).voice.stt(call.version.config.voice) as never)
+        : undefined;
     },
     tts: async ({ ctx }) => {
       const call = callsByJob.get(ctx.job.id);
-      return call ? ((await getContainer()).voice.tts(call.version.config.voice) as never) : undefined;
+      return call
+        ? ((await getContainer()).voice.tts(call.version.config.voice) as never)
+        : undefined;
     },
     // Turn detectors need the job context, so they are built here, per call.
     turnDetection: ({ ctx }) => {
@@ -99,14 +118,25 @@ const worker: AgentDefinition<any> = createLiveKitWorker({
     const call = memory ? callsByConversation.get(memory.thread) : undefined;
     if (!call) return;
     const { callDeps } = await getContainer();
-    await recordTurn(callDeps.events, call, { customer: messages.filter((m) => m.role === "user").map((m) => m.content), agent: result.text });
+    await recordTurn(callDeps.events, call, {
+      customer: messages.filter((m) => m.role === "user").map((m) => m.content),
+      agent: result.text,
+    });
   },
 
   onCallEnd: async ({ ctx }) => {
     const call = callsByJob.get(ctx.job.id);
     if (!call) return;
     const container = await getContainer();
-    await finishCall({ conversations: container.callDeps.conversations, events: container.callDeps.events, jobs: container.jobs, log: container.log }, call);
+    await finishCall(
+      {
+        conversations: container.callDeps.conversations,
+        events: container.callDeps.events,
+        jobs: container.jobs,
+        log: container.log,
+      },
+      call,
+    );
     callsByJob.delete(ctx.job.id);
     callsByConversation.delete(call.conversationId);
   },

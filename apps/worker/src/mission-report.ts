@@ -1,7 +1,14 @@
-import type { EventStore, MissionPlan, MissionReport, MissionRepository, MissionTarget } from "@ofd/core";
+import type {
+  EventStore,
+  MissionPlan,
+  MissionReport,
+  MissionRepository,
+  MissionTarget,
+} from "@ofd/core";
 import { appendSystemEvent } from "./deps.js";
 
-export const isFinalTargetStatus = (s: MissionTarget["status"]) => s !== "pending" && s !== "contacted";
+export const isFinalTargetStatus = (s: MissionTarget["status"]) =>
+  s !== "pending" && s !== "contacted";
 
 export function computeReport(targets: MissionTarget[]): MissionReport {
   const count = (s: MissionTarget["status"]) => targets.filter((t) => t.status === s).length;
@@ -24,7 +31,12 @@ export async function completeMissionIfDone(
   if (!plan.targets.every((t) => isFinalTargetStatus(t.status))) return false;
   const report = computeReport(plan.targets);
   await deps.missions.update(orgId, missionId, { status: "completed", report, plan });
-  await appendSystemEvent(deps.events, { orgId, type: "mission.completed", payload: { missionId, report }, actorId: "mission.contact" });
+  await appendSystemEvent(deps.events, {
+    orgId,
+    type: "mission.completed",
+    payload: { missionId, report },
+    actorId: "mission.contact",
+  });
   return true;
 }
 

@@ -5,10 +5,14 @@ export type Identity = "match" | "mismatch";
 const DAY = 86_400_000;
 
 /** Returns a schema-valid input for a builtin tool, or null for a tool that is not in the catalog. */
-export function sampleInput(tool: string, opts: { identity: Identity; expectedDni: unknown; now: Date }): Record<string, unknown> | null {
+export function sampleInput(
+  tool: string,
+  opts: { identity: Identity; expectedDni: unknown; now: Date },
+): Record<string, unknown> | null {
   const expected = opts.expectedDni == null ? null : String(opts.expectedDni);
   const wrong = expected === "9999" ? "0000" : "9999";
-  const dniLast4 = opts.identity === "match" && expected && /^\d{4}$/.test(expected) ? expected : wrong;
+  const dniLast4 =
+    opts.identity === "match" && expected && /^\d{4}$/.test(expected) ? expected : wrong;
   const from = opts.now.toISOString();
   const to = new Date(opts.now.getTime() + 7 * DAY).toISOString();
 

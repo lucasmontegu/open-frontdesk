@@ -1,8 +1,8 @@
-import { Command, CommanderError } from "commander";
 import { BotConfig, type BotVersion } from "@ofd/core";
+import { type EvalRunResult, type ReleaseGateInput, runReleaseGate } from "@ofd/evals";
 import { listBuiltinPacks, type Pack } from "@ofd/packs";
-import { runReleaseGate, type EvalRunResult, type ReleaseGateInput } from "@ofd/evals";
-import { messages, type Lang } from "./messages.js";
+import { Command, CommanderError } from "commander";
+import { type Lang, messages } from "./messages.js";
 import { resolvePack, scaffoldPack, validatePackDir } from "./packs.js";
 
 /** Everything the commands touch outside the process, so tests can replace it. */
@@ -12,7 +12,10 @@ export interface CliDeps {
   env: Record<string, string | undefined>;
   runGate(input: ReleaseGateInput): Promise<EvalRunResult>;
   migrate(databaseUrl: string): Promise<void>;
-  seed(databaseUrl: string, orgId?: string): Promise<{ contacts: number; obligations: number; docs: number }>;
+  seed(
+    databaseUrl: string,
+    orgId?: string,
+  ): Promise<{ contacts: number; obligations: number; docs: number }>;
 }
 
 export interface CliResult {
@@ -27,7 +30,10 @@ function draftVersion(pack: Pack): BotVersion {
     orgId: EVAL_ORG_ID,
     botId: "bot_cli_draft",
     version: 1,
-    config: BotConfig.parse({ ...pack.manifest.defaultBot, pack: { id: pack.manifest.id, version: pack.manifest.version } }),
+    config: BotConfig.parse({
+      ...pack.manifest.defaultBot,
+      pack: { id: pack.manifest.id, version: pack.manifest.version },
+    }),
     status: "draft",
     evalRunId: null,
     createdAt: new Date(),
@@ -52,7 +58,8 @@ export function formatGateResult(result: EvalRunResult, packId: string, lang: La
 }
 
 const parseLang = (v: string): Lang => {
-  if (v !== "es" && v !== "en") throw new CommanderError(1, "commander.invalidArgument", `--lang must be "es" or "en"`);
+  if (v !== "es" && v !== "en")
+    throw new CommanderError(1, "commander.invalidArgument", `--lang must be "es" or "en"`);
   return v;
 };
 
@@ -61,7 +68,10 @@ export function buildProgram(deps: CliDeps, result: CliResult = { exitCode: 0 })
     .description("OpenFrontDesk command line")
     .option("--lang <lang>", "output language: es or en", parseLang, "es" as Lang)
     .exitOverride()
-    .configureOutput({ writeOut: (s) => deps.out(s.trimEnd()), writeErr: (s) => deps.err(s.trimEnd()) });
+    .configureOutput({
+      writeOut: (s) => deps.out(s.trimEnd()),
+      writeErr: (s) => deps.err(s.trimEnd()),
+    });
   const lang = () => program.opts<{ lang: Lang }>().lang;
   const fail = (line: string) => {
     deps.err(line);
@@ -102,7 +112,10 @@ export function buildProgram(deps: CliDeps, result: CliResult = { exitCode: 0 })
     .description("list the builtin packs")
     .action(() => {
       deps.out(messages(lang()).packsHeader);
-      for (const p of listBuiltinPacks()) deps.out(`${p.manifest.id}\t${p.manifest.version}\t${p.scenarios.length}\t${p.manifest.name}`);
+      for (const p of listBuiltinPacks())
+        deps.out(
+          `${p.manifest.id}\t${p.manifest.version}\t${p.scenarios.length}\t${p.manifest.name}`,
+        );
     });
   packs
     .command("validate")
@@ -115,7 +128,9 @@ export function buildProgram(deps: CliDeps, result: CliResult = { exitCode: 0 })
         result.exitCode = 1;
         return;
       }
-      deps.out(messages(lang()).packOk(pack.manifest.id, pack.scenarios.length, pack.policies.length));
+      deps.out(
+        messages(lang()).packOk(pack.manifest.id, pack.scenarios.length, pack.policies.length),
+      );
     });
 
   program

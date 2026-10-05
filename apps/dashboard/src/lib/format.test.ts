@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { formatArs, formatDate, formatDateTime, formatMinutes, formatPhone, isSameDayAr } from "./format";
+import {
+  formatArs,
+  formatDate,
+  formatDateTime,
+  formatMinutes,
+  formatPhone,
+  isSameDayAr,
+} from "./format";
 
 describe("formatArs", () => {
   it("uses Argentine separators", () => {

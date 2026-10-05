@@ -1,9 +1,9 @@
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
 import type { z } from "zod";
-import { EvalScenario, PackManifest, PolicyFile, type Pack } from "./schema.js";
+import { EvalScenario, type Pack, PackManifest, PolicyFile } from "./schema.js";
 
 /** Resolved from the package root, so it works from both src/ and dist/. */
 export const BUILTIN_PACKS_DIR = fileURLToPath(new URL("../packs/", import.meta.url));
@@ -27,7 +27,9 @@ function readYaml<S extends z.ZodType>(file: string, schema: S): z.infer<S> {
   }
   const result = schema.safeParse(raw);
   if (!result.success) {
-    const detail = result.error.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`).join("; ");
+    const detail = result.error.issues
+      .map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`)
+      .join("; ");
     throw new PackError(file, detail);
   }
   return result.data;
@@ -36,15 +38,21 @@ function readYaml<S extends z.ZodType>(file: string, schema: S): z.infer<S> {
 export function loadPack(dir: string): Pack {
   const manifest = readYaml(join(dir, "pack.yaml"), PackManifest);
   if (manifest.id !== basename(dir)) {
-    throw new PackError(join(dir, "pack.yaml"), `id: "${manifest.id}" must match the directory name "${basename(dir)}"`);
+    throw new PackError(
+      join(dir, "pack.yaml"),
+      `id: "${manifest.id}" must match the directory name "${basename(dir)}"`,
+    );
   }
   const policies = readYaml(join(dir, "policies.yaml"), PolicyFile);
   const scenariosDir = join(dir, "scenarios");
-  const files = readdirSync(scenariosDir).filter((f) => /\.ya?ml$/.test(f)).sort();
+  const files = readdirSync(scenariosDir)
+    .filter((f) => /\.ya?ml$/.test(f))
+    .sort();
   const scenarios = files.map((f) => readYaml(join(scenariosDir, f), EvalScenario));
   const ids = new Set<string>();
   for (const rule of policies) {
-    if (ids.has(rule.id)) throw new PackError(join(dir, "policies.yaml"), `id: duplicate rule id "${rule.id}"`);
+    if (ids.has(rule.id))
+      throw new PackError(join(dir, "policies.yaml"), `id: duplicate rule id "${rule.id}"`);
     ids.add(rule.id);
   }
   return { manifest, policies, scenarios };

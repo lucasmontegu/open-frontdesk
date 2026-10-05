@@ -23,5 +23,31 @@
     "parser": {
       "tailwindDirectives": true
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "apps/dashboard/src/components/ui/**",
+        "apps/dashboard/src/components/ai-elements/**"
+      ],
+      "linter": {
+        "rules": {
+          "a11y": "off",
+          "suspicious": {
+            "noArrayIndexKey": "off",
+            "noDoubleEquals": "off",
+            "noExplicitAny": "off"
+          },
+          "style": {
+            "noNonNullAssertion": "off"
+          },
+          "correctness": {
+            "useExhaustiveDependencies": "off"
+          },
+          "complexity": "off",
+          "performance": "off"
+        }
+      }
+    }
+  ]
 }

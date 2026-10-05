@@ -1,124 +1,113 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
+import { Link, useParams } from "@tanstack/react-router";
 import {
-  Badge,
-  Button,
-  Card,
+  ClockIcon,
+  MessageCircleIcon,
+  PhoneIcon,
+  RouteIcon,
+  SendIcon,
+  ShieldCheckIcon,
+  UsersIcon,
+} from "lucide-react";
+import {
+  Plan,
+  PlanContent,
+  PlanDescription,
+  PlanHeader,
+  PlanTitle,
+  PlanTrigger,
+} from "@/components/ai-elements/plan";
+import {
+  Queue,
+  QueueItem,
+  QueueItemContent,
+  QueueItemDescription,
+  QueueItemIndicator,
+  QueueList,
+  QueueSection,
+  QueueSectionContent,
+  QueueSectionLabel,
+  QueueSectionTrigger,
+} from "@/components/ai-elements/queue";
+import { Shimmer } from "@/components/ai-elements/shimmer";
+import { BotAvatar } from "@/components/bot-avatar";
+import {
   EmptyState,
   ErrorNote,
-  Loading,
   PageHeader,
-  Select,
-  Table,
-  Td,
-  Textarea,
-  Th,
-} from "../components/ui";
-import { t } from "../i18n";
-import { api, type MissionDto } from "../lib/api";
-import { formatDateTime, formatMinutes, shortId } from "../lib/format";
+  PageLoading,
+  Panel,
+  RowsLoading,
+  StatStrip,
+  StatusPill,
+  type Tone,
+} from "@/components/common";
+import { MissionComposer } from "@/components/mission-composer";
+import { Button } from "@/components/ui/button";
+import { t } from "@/i18n";
+import { api, type MissionDto } from "@/lib/api";
+import { formatDateTime, formatMinutes, shortId } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
-const tone = (s: string) =>
+export const missionTone = (s: string): Tone =>
   s === "completed"
-    ? "ok"
+    ? "success"
     : s === "failed" || s === "cancelled"
       ? "danger"
       : s === "awaiting_approval"
-        ? "warn"
-        : "accent";
+        ? "warning"
+        : "brand";
 
 export function MissionsPage() {
-  const qc = useQueryClient();
-  const navigate = useNavigate();
-  const bots = useQuery({ queryKey: ["bots"], queryFn: api.bots.list });
-  const missions = useQuery({ queryKey: ["missions"], queryFn: api.missions.list });
-  const publishedBots = (bots.data?.items ?? []).filter((b) => b.publishedVersionId);
-
-  const create = useMutation({
-    mutationFn: api.missions.create,
-    onSuccess: async (m) => {
-      await qc.invalidateQueries({ queryKey: ["missions"] });
-      await navigate({ to: "/misiones/$missionId", params: { missionId: m.id } });
-    },
+  const missions = useQuery({
+    queryKey: ["missions"],
+    queryFn: api.missions.list,
+    refetchInterval: 15_000,
   });
-
-  const submit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    create.mutate({
-      instruction: String(f.get("instruction")).trim(),
-      botId: String(f.get("bot")),
-    });
-  };
-
-  const items = missions.data?.items ?? [];
+  const bots = useQuery({ queryKey: ["bots"], queryFn: api.bots.list });
+  const botName = new Map((bots.data?.items ?? []).map((b) => [b.id, b.name]));
+  const items = [...(missions.data?.items ?? [])].sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt),
+  );
 
   return (
     <>
-      <PageHeader title={t.missions.title} />
-      <Card>
-        <form onSubmit={submit} className="space-y-4">
-          <Textarea
-            label={t.missions.prompt}
-            name="instruction"
-            rows={4}
-            placeholder={t.missions.placeholder}
-            required
-            className="text-base"
-          />
-          <Select label={t.missions.bot} name="bot" required defaultValue={publishedBots[0]?.id}>
-            {publishedBots.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </Select>
-          {bots.data && publishedBots.length === 0 && (
-            <p className="text-sm text-muted">{t.missions.noBots}</p>
-          )}
-          {create.error && <ErrorNote error={create.error} />}
-          <Button type="submit" disabled={create.isPending || publishedBots.length === 0}>
-            {t.missions.submit}
-          </Button>
-        </form>
-      </Card>
-      <Card title={t.missions.list} className="mt-4">
+      <PageHeader title={t.missions.title} subtitle={t.missions.subtitle} />
+      <div className="mb-8">
+        <MissionComposer autoFocus />
+      </div>
+      {missions.error && <ErrorNote error={missions.error} onRetry={() => missions.refetch()} />}
+      <Panel title={t.missions.list}>
         {missions.isLoading ? (
-          <Loading />
+          <RowsLoading />
         ) : items.length === 0 ? (
-          <EmptyState title={t.missions.empty} />
+          <EmptyState icon={SendIcon} title={t.missions.empty} hint={t.missions.emptyHint} />
         ) : (
-          <Table caption={t.missions.list}>
-            <thead>
-              <tr>
-                <Th>{t.missions.instruction}</Th>
-                <Th>{t.common.status}</Th>
-                <Th>{t.common.created}</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((m) => (
-                <tr key={m.id}>
-                  <Td>
-                    <Link
-                      to="/misiones/$missionId"
-                      params={{ missionId: m.id }}
-                      className="text-accent underline"
-                    >
-                      {m.instruction}
-                    </Link>
-                  </Td>
-                  <Td>
-                    <Badge tone={tone(m.status)}>{t.missions.statuses[m.status] ?? m.status}</Badge>
-                  </Td>
-                  <Td className="whitespace-nowrap">{formatDateTime(m.createdAt)}</Td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
+          items.map((m) => (
+            <Link
+              key={m.id}
+              to="/missions/$missionId"
+              params={{ missionId: m.id }}
+              className="flex flex-wrap items-center gap-3 rounded-2xl bg-background p-4 transition-shadow hover:shadow-sm"
+            >
+              <BotAvatar seed={m.botId} size={36} />
+              <div className="min-w-0 flex-1 basis-60">
+                <p className="line-clamp-1 font-medium">{m.instruction}</p>
+                <p className="mt-0.5 text-muted-foreground text-xs">
+                  {botName.get(m.botId) ?? shortId(m.botId)} · {formatDateTime(m.createdAt)}
+                  {m.plan ? ` · ${m.plan.targets.length} ${t.missions.targets.toLowerCase()}` : ""}
+                </p>
+              </div>
+              <StatusPill
+                tone={missionTone(m.status)}
+                pulse={m.status === "running" || m.status === "planning"}
+              >
+                {t.missions.statuses[m.status] ?? m.status}
+              </StatusPill>
+            </Link>
+          ))
         )}
-      </Card>
+      </Panel>
     </>
   );
 }
@@ -129,14 +118,25 @@ export function shouldPoll(m: Pick<MissionDto, "status"> | undefined): boolean {
   return m === undefined || POLLING.has(m.status);
 }
 
+const DONE_TARGET = new Set(["succeeded", "no_answer", "escalated", "failed"]);
+
+const targetTone: Record<string, string> = {
+  succeeded: "border-success bg-success",
+  failed: "border-destructive bg-destructive",
+  escalated: "border-warning bg-warning",
+  no_answer: "border-muted-foreground/40 bg-muted-foreground/30",
+  contacted: "border-brand bg-brand/30 animate-pulse",
+};
+
 export function MissionDetailPage() {
-  const { missionId } = useParams({ from: "/app/misiones/$missionId" });
+  const { missionId } = useParams({ from: "/app/missions/$missionId" });
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["mission", missionId],
     queryFn: () => api.missions.get(missionId),
-    refetchInterval: (query) => (shouldPoll(query.state.data) ? 3000 : false),
+    refetchInterval: (query) => (shouldPoll(query.state.data) ? 2500 : false),
   });
+  const bots = useQuery({ queryKey: ["bots"], queryFn: api.bots.list });
   const approve = useMutation({
     mutationFn: () => api.missions.approve(missionId),
     onSuccess: async () => {
@@ -145,128 +145,188 @@ export function MissionDetailPage() {
     },
   });
 
-  if (q.isLoading) return <Loading />;
+  if (q.isLoading) return <PageLoading />;
   if (q.error || !q.data) return <ErrorNote error={q.error} onRetry={() => q.refetch()} />;
   const m = q.data;
   const { plan, report } = m;
+  const bot = bots.data?.items.find((b) => b.id === m.botId);
+  const names = m.targetNames ?? {};
+  const channelName = (c: string) => t.missions.channels[c] ?? c;
+  const pending = plan?.targets.filter((x) => !DONE_TARGET.has(x.status)) ?? [];
+  const finished = plan?.targets.filter((x) => DONE_TARGET.has(x.status)) ?? [];
+
+  const targetRow = (x: NonNullable<typeof plan>["targets"][number]) => {
+    const done = DONE_TARGET.has(x.status);
+    const offer = Object.entries(x.offer)
+      .map(([k, v]) => `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`)
+      .join(" · ");
+    return (
+      <QueueItem key={x.contactId} className="rounded-xl py-2">
+        <div className="flex items-center gap-2">
+          <QueueItemIndicator completed={done} className={cn("size-3", targetTone[x.status])} />
+          <QueueItemContent completed={false} className="text-foreground">
+            <Link
+              to="/contacts/$contactId"
+              params={{ contactId: x.contactId }}
+              className="font-medium hover:underline"
+            >
+              {names[x.contactId] ?? shortId(x.contactId)}
+            </Link>
+          </QueueItemContent>
+          <span className="flex shrink-0 items-center gap-1 text-muted-foreground text-xs">
+            {x.channel === "voice" ? (
+              <PhoneIcon className="size-3.5" />
+            ) : (
+              <MessageCircleIcon className="size-3.5" />
+            )}
+            {channelName(x.channel)} · {t.missions.targetStatuses[x.status] ?? x.status}
+          </span>
+        </div>
+        {offer && <QueueItemDescription className="font-mono">{offer}</QueueItemDescription>}
+      </QueueItem>
+    );
+  };
 
   return (
     <>
-      <Link to="/misiones" className="mb-2 inline-block text-sm text-accent underline">
-        {t.common.back}
-      </Link>
       <PageHeader
-        title={m.instruction}
-        subtitle={shortId(m.id)}
-        actions={
-          <span className="flex items-center gap-2">
-            <Badge tone={tone(m.status)}>{t.missions.statuses[m.status] ?? m.status}</Badge>
-            {POLLING.has(m.status) && <span className="text-xs text-muted">{t.missions.live}</span>}
+        back="/missions"
+        eyebrow={
+          <span className="flex items-center gap-1.5">
+            {t.missions.title} / {bot?.name ?? shortId(m.botId)}
           </span>
         }
+        title={m.instruction}
+        subtitle={formatDateTime(m.createdAt)}
+        actions={
+          <StatusPill
+            tone={missionTone(m.status)}
+            pulse={POLLING.has(m.status)}
+            className="px-3 py-1.5 text-sm"
+          >
+            {t.missions.statuses[m.status] ?? m.status}
+          </StatusPill>
+        }
       />
-      <div className="space-y-4">
+
+      <div className="flex flex-col gap-6">
         {m.status === "planning" && !plan && (
-          <Card>
-            <p role="status" className="text-sm text-muted">
+          <div className="rounded-3xl bg-muted/70 p-6">
+            <Shimmer as="p" className="font-medium text-lg">
               {t.missions.planning}
-            </p>
-          </Card>
+            </Shimmer>
+            <p className="mt-1 text-muted-foreground text-sm">{t.missions.planningHint}</p>
+          </div>
+        )}
+
+        {m.status === "awaiting_approval" && (
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl bg-hero p-5 text-hero-foreground md:p-6">
+            <div className="flex items-start gap-4">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand text-brand-foreground">
+                <ShieldCheckIcon className="size-6" />
+              </span>
+              <div>
+                <p className="font-semibold text-lg">{t.missions.awaitingTitle}</p>
+                <p className="text-hero-foreground/70 text-sm">{t.missions.awaitingHint}</p>
+              </div>
+            </div>
+            <Button
+              size="lg"
+              variant="secondary"
+              disabled={approve.isPending}
+              onClick={() => approve.mutate()}
+            >
+              <SendIcon />
+              {approve.isPending ? t.missions.approving : t.missions.approve}
+            </Button>
+          </div>
+        )}
+        {approve.error && <ErrorNote error={approve.error} />}
+
+        {report && (
+          <StatStrip
+            stats={[
+              { label: t.missions.total, value: report.total },
+              { label: t.missions.succeeded, value: report.succeeded, tone: "success" },
+              { label: t.missions.noAnswer, value: report.noAnswer },
+              { label: t.missions.escalated, value: report.escalated, tone: "warning" },
+              { label: t.missions.failed, value: report.failed, tone: "danger" },
+            ]}
+            bar={[
+              { value: report.succeeded, tone: "success" },
+              { value: report.noAnswer, tone: "default" },
+              { value: report.escalated, tone: "warning" },
+              { value: report.failed, tone: "danger" },
+            ]}
+          />
         )}
 
         {plan && (
-          <Card title={t.missions.plan}>
-            <p className="mb-4 text-sm">{plan.summary}</p>
-            <dl className="mb-4 grid gap-3 text-sm sm:grid-cols-3">
+          <Plan defaultOpen className="gap-4 rounded-3xl border-0 bg-muted/70 py-5">
+            <PlanHeader className="px-5">
               <div>
-                <dt className="text-muted">{t.missions.targets}</dt>
-                <dd className="text-xl font-semibold">{plan.targets.length}</dd>
+                <PlanTitle>{t.missions.plan}</PlanTitle>
+                <PlanDescription className="text-balance text-foreground">
+                  {plan.summary}
+                </PlanDescription>
               </div>
-              <div>
-                <dt className="text-muted">{t.missions.estimate}</dt>
-                <dd className="text-xl font-semibold">{formatMinutes(plan.estimatedMinutes)}</dd>
-              </div>
-              <div>
-                <dt className="text-muted">{t.missions.strategy}</dt>
-                <dd>
-                  {t.missions.strategyText(
-                    t.missions.channels[plan.channelStrategy.first] ?? plan.channelStrategy.first,
-                    plan.channelStrategy.fallbackAfterMinutes,
-                  )}
-                </dd>
-              </div>
-            </dl>
-            <Table caption={t.missions.targets}>
-              <thead>
-                <tr>
-                  <Th>{t.missions.contact}</Th>
-                  <Th>{t.missions.channel}</Th>
-                  <Th>{t.missions.offer}</Th>
-                  <Th>{t.common.status}</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {plan.targets.slice(0, 100).map((x) => (
-                  <tr key={x.contactId}>
-                    <Td>
-                      <Link
-                        to="/contactos/$contactId"
-                        params={{ contactId: x.contactId }}
-                        className="text-accent underline"
-                      >
-                        {shortId(x.contactId)}
-                      </Link>
-                    </Td>
-                    <Td>{t.missions.channels[x.channel] ?? x.channel}</Td>
-                    <Td className="font-mono text-xs">
-                      {Object.keys(x.offer).length ? JSON.stringify(x.offer) : ""}
-                    </Td>
-                    <Td>{t.missions.targetStatuses[x.status] ?? x.status}</Td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-            {m.status === "awaiting_approval" && (
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <Button disabled={approve.isPending} onClick={() => approve.mutate()}>
-                  {approve.isPending ? t.missions.approving : t.missions.approve}
-                </Button>
-                <span className="text-sm text-muted">{t.missions.awaitingHint}</span>
-              </div>
-            )}
-            {approve.error && (
-              <div className="mt-3">
-                <ErrorNote error={approve.error} />
-              </div>
-            )}
-          </Card>
-        )}
-
-        {(report || m.status === "running") && (
-          <Card title={t.missions.report}>
-            {report ? (
-              <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-5">
-                {(
-                  [
-                    ["total", t.missions.total],
-                    ["succeeded", t.missions.succeeded],
-                    ["noAnswer", t.missions.noAnswer],
-                    ["escalated", t.missions.escalated],
-                    ["failed", t.missions.failed],
-                  ] as const
-                ).map(([k, label]) => (
-                  <div key={k}>
-                    <dt className="text-muted">{label}</dt>
-                    <dd className="text-2xl font-semibold">{report[k]}</dd>
+              <PlanTrigger />
+            </PlanHeader>
+            <PlanContent className="space-y-4 px-2">
+              <dl className="grid gap-1.5 sm:grid-cols-3">
+                {[
+                  {
+                    icon: UsersIcon,
+                    label: t.missions.targets,
+                    value: String(plan.targets.length),
+                  },
+                  {
+                    icon: ClockIcon,
+                    label: t.missions.estimate,
+                    value: formatMinutes(plan.estimatedMinutes),
+                  },
+                  {
+                    icon: RouteIcon,
+                    label: t.missions.strategy,
+                    value: t.missions.strategyText(
+                      channelName(plan.channelStrategy.first),
+                      plan.channelStrategy.fallbackAfterMinutes,
+                    ),
+                  },
+                ].map(({ icon: Icon, label, value }) => (
+                  <div key={label} className="rounded-2xl bg-background p-4">
+                    <dt className="flex items-center gap-1.5 text-muted-foreground text-xs">
+                      <Icon className="size-3.5" />
+                      {label}
+                    </dt>
+                    <dd className="mt-1 font-semibold">{value}</dd>
                   </div>
                 ))}
               </dl>
-            ) : (
-              <p role="status" className="text-sm text-muted">
-                {t.missions.live}...
-              </p>
-            )}
-          </Card>
+              <Queue className="rounded-2xl border-0 bg-background shadow-none">
+                {pending.length > 0 && (
+                  <QueueSection defaultOpen>
+                    <QueueSectionTrigger>
+                      <QueueSectionLabel count={pending.length} label={t.missions.pendingTargets} />
+                    </QueueSectionTrigger>
+                    <QueueSectionContent>
+                      <QueueList>{pending.slice(0, 100).map(targetRow)}</QueueList>
+                    </QueueSectionContent>
+                  </QueueSection>
+                )}
+                {finished.length > 0 && (
+                  <QueueSection defaultOpen>
+                    <QueueSectionTrigger>
+                      <QueueSectionLabel count={finished.length} label={t.missions.doneTargets} />
+                    </QueueSectionTrigger>
+                    <QueueSectionContent>
+                      <QueueList>{finished.slice(0, 100).map(targetRow)}</QueueList>
+                    </QueueSectionContent>
+                  </QueueSection>
+                )}
+              </Queue>
+            </PlanContent>
+          </Plan>
         )}
       </div>
     </>

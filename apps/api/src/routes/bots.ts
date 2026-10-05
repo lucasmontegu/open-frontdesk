@@ -26,7 +26,32 @@ export function botRoutes(container: Container) {
 
   return new Hono<AppEnv>()
     .get("/", requirePermission("bots", "read"), async (c) => {
-      const items = await bots.list(c.get("actor").orgId);
+      const orgId = c.get("actor").orgId;
+      const list = await bots.list(orgId);
+      // Each bot carries a summary of the version it runs (or its newest draft) for list views.
+      const items = await Promise.all(
+        list.map(async (bot) => {
+          const versions = await bots.listVersions(orgId, bot.id);
+          const current =
+            versions.find((v) => v.id === bot.publishedVersionId) ??
+            [...versions].sort((a, b) => b.version - a.version)[0];
+          return {
+            ...bot,
+            current: current
+              ? {
+                  version: current.version,
+                  status: current.status,
+                  role: current.config.role,
+                  goal: current.config.goal,
+                  autonomy: current.config.autonomy,
+                  channels: current.config.channels,
+                  packId: current.config.pack?.id ?? null,
+                }
+              : null,
+            versionCount: versions.length,
+          };
+        }),
+      );
       return c.json({ items, nextCursor: null });
     })
     .post("/", requirePermission("bots", "create"), validate("json", createBody), async (c) => {
@@ -64,6 +89,23 @@ export function botRoutes(container: Container) {
       const orgId = c.get("actor").orgId;
       const bot = await loadBot(orgId, c.req.param("id"));
       return c.json({ bot, versions: await bots.listVersions(orgId, bot.id) });
+    })
+    .get("/:id/policies", requirePermission("bots", "read"), async (c) => {
+      const orgId = c.get("actor").orgId;
+      const bot = await loadBot(orgId, c.req.param("id"));
+      // Same merge the release gate runs: org rules, then the newest version's pack rules.
+      const versions = await bots.listVersions(orgId, bot.id);
+      const current =
+        versions.find((v) => v.id === bot.publishedVersionId) ??
+        [...versions].sort((a, b) => b.version - a.version)[0];
+      const pack = current?.config.pack ? getBuiltinPack(current.config.pack.id) : null;
+      const orgRules = await policies.rulesFor(orgId, bot.id);
+      const orgIds = new Set(orgRules.map((r) => r.id));
+      const items = mergePolicies(orgRules, pack?.policies ?? []).map((r) => ({
+        ...r,
+        source: orgIds.has(r.id) ? "org" : "pack",
+      }));
+      return c.json({ items, nextCursor: null });
     })
     .post(
       "/:id/versions",

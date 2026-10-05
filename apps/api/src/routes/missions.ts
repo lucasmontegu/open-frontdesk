@@ -8,7 +8,7 @@ import { validate } from "../http/validate.js";
 const createBody = z.object({ instruction: z.string().min(1), botId: z.string().min(1) });
 
 export function missionRoutes(container: Container) {
-  const { missions, bots } = container.repos;
+  const { missions, bots, contacts } = container.repos;
   return new Hono<AppEnv>()
     .get("/", requirePermission("missions", "read"), async (c) => {
       const items = await missions.list(c.get("actor").orgId);
@@ -38,9 +38,16 @@ export function missionRoutes(container: Container) {
       return c.json(mission, 201);
     })
     .get("/:id", requirePermission("missions", "read"), async (c) => {
-      const mission = await missions.get(c.get("actor").orgId, c.req.param("id"));
+      const orgId = c.get("actor").orgId;
+      const mission = await missions.get(orgId, c.req.param("id"));
       if (!mission) throw notFound("mission");
-      return c.json(mission);
+      // Names for the plan's first targets, so the review screen shows people, not ids.
+      const ids = (mission.plan?.targets ?? []).slice(0, 100).map((t) => t.contactId);
+      const found = await Promise.all(ids.map((id) => contacts.get(orgId, id)));
+      const targetNames = Object.fromEntries(
+        found.flatMap((x) => (x ? [[x.id, x.displayName] as const] : [])),
+      );
+      return c.json({ ...mission, targetNames });
     })
     .post("/:id/approve", requirePermission("missions", "approve"), async (c) => {
       const actor = c.get("actor");

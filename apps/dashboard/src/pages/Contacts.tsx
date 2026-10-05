@@ -1,25 +1,43 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
-import { type FormEvent, useEffect, useState } from "react";
-import { EventsTable } from "../components/EventsTable";
 import {
-  Badge,
-  Button,
-  Card,
-  Dialog,
+  BrainIcon,
+  ChevronRightIcon,
+  FileUpIcon,
+  MailIcon,
+  MessagesSquareIcon,
+  PhoneIcon,
+  SearchIcon,
+  UploadIcon,
+  UsersIcon,
+} from "lucide-react";
+import { type FormEvent, useEffect, useState } from "react";
+import {
   EmptyState,
   ErrorNote,
-  Input,
-  Loading,
   PageHeader,
-  Table,
-  Td,
-  Textarea,
-  Th,
-} from "../components/ui";
-import { t } from "../i18n";
-import { api, type ContactDto } from "../lib/api";
-import { formatArs, formatDate, formatPhone } from "../lib/format";
+  PageLoading,
+  Panel,
+  PanelRow,
+  RowsLoading,
+  StatusPill,
+} from "@/components/common";
+import { ConversationView, EventList } from "@/components/events";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { t } from "@/i18n";
+import { api, type ContactDto } from "@/lib/api";
+import { formatArs, formatDate, formatPhone } from "@/lib/format";
 
 function useDebounced<T>(value: T, ms: number): T {
   const [v, setV] = useState(value);
@@ -35,6 +53,29 @@ export function identity(c: ContactDto, kind: "phone" | "whatsapp" | "email"): s
     c.identities.find((i) => i.kind === kind) ??
     (kind === "phone" ? c.identities.find((i) => i.kind === "whatsapp") : undefined);
   return found ? found.value : null;
+}
+
+export function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("");
+}
+
+/** A small CSV with the headers operators usually export, for trying the flow end to end. */
+function sampleCsv(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  const tomorrow = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+  return [
+    "nombre,telefono,email,dni,monto,vencimiento,etapa,tipo,etiquetas",
+    `Ana Pérez,11 5555-0101,ana@example.com,30111001,,${tomorrow},confirmado,turno,paciente`,
+    `Juan Gómez,11 5555-0102,juan@example.com,28222002,"45.000,00",15/08/2026,mora,deuda,cliente`,
+    `María López,351 555-0103,maria@example.com,33444003,,${tomorrow},pendiente,turno,paciente`,
+    `Carlos Díaz,11 5555-0104,carlos@example.com,27555004,"120.500,00",01/07/2026,mora,deuda,cliente`,
+  ].join("\n");
 }
 
 function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -54,51 +95,125 @@ function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void })
   };
 
   return (
-    <Dialog open={open} onClose={onClose} title={t.contacts.importTitle}>
-      <form onSubmit={submit} className="space-y-4">
-        <p className="text-sm text-muted">{t.contacts.importHelp}</p>
-        <Input
-          label={t.contacts.importFile}
-          type="file"
-          accept=".csv,text/csv"
-          onChange={(e) => onFile(e.target.files?.[0])}
-        />
-        <Textarea
-          label={t.contacts.importText}
-          rows={6}
-          value={csv}
-          onChange={(e) => setCsv(e.target.value)}
-          className="font-mono"
-          required
-        />
-        {m.error && <ErrorNote error={m.error} />}
-        {m.data && (
-          <div role="status" className="rounded-md bg-ok-bg px-3 py-2 text-sm text-ok">
-            {t.contacts.importDone(m.data.created, m.data.updated)}
-            {m.data.errors && m.data.errors.length > 0 && (
-              <>
-                <p className="mt-2 font-medium">{t.contacts.importErrors}</p>
-                <ul className="list-disc pl-5">
-                  {m.data.errors.slice(0, 10).map((er) => (
-                    <li key={er.row}>
-                      {er.row}: {er.message}
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-2xl">
+        <form onSubmit={submit} className="flex flex-col gap-4">
+          <DialogHeader>
+            <DialogTitle className="text-xl">{t.contacts.importTitle}</DialogTitle>
+            <DialogDescription>{t.contacts.importHelp}</DialogDescription>
+          </DialogHeader>
+          <label className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-dashed bg-muted/50 p-6 text-center text-sm transition-colors hover:bg-muted">
+            <FileUpIcon className="size-6 text-muted-foreground" />
+            <span className="font-medium">{t.contacts.importFile}</span>
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              className="sr-only"
+              onChange={(e) => onFile(e.target.files?.[0])}
+            />
+          </label>
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="csv">{t.contacts.importText}</Label>
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                className="h-auto px-0"
+                onClick={() => setCsv(sampleCsv())}
+              >
+                {t.contacts.sample}
+              </Button>
+            </div>
+            <Textarea
+              id="csv"
+              rows={7}
+              value={csv}
+              onChange={(e) => setCsv(e.target.value)}
+              className="max-h-64 font-mono text-xs"
+              required
+            />
           </div>
-        )}
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={onClose}>
-            {t.common.close}
-          </Button>
-          <Button type="submit" disabled={m.isPending || csv.trim() === ""}>
-            {t.contacts.importSubmit}
-          </Button>
-        </div>
-      </form>
+          {m.error && <ErrorNote error={m.error} />}
+          {m.data && (
+            <div
+              role="status"
+              className="rounded-2xl bg-success-soft px-4 py-3 text-sm text-success"
+            >
+              {t.contacts.importDone(m.data.created, m.data.updated)}
+              {m.data.errors && m.data.errors.length > 0 && (
+                <>
+                  <p className="mt-2 font-medium">{t.contacts.importErrors}</p>
+                  <ul className="list-disc pl-5">
+                    {m.data.errors.slice(0, 10).map((er) => (
+                      <li key={er.row}>
+                        {er.row}: {er.message}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              {t.common.close}
+            </Button>
+            <Button type="submit" disabled={m.isPending || csv.trim() === ""}>
+              <UploadIcon />
+              {t.contacts.importSubmit}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
     </Dialog>
+  );
+}
+
+function ContactRow({ c }: { c: ContactDto }) {
+  const phone = identity(c, "phone");
+  const email = identity(c, "email");
+  return (
+    <Link
+      to="/contacts/$contactId"
+      params={{ contactId: c.id }}
+      className="flex flex-wrap items-center gap-3 rounded-2xl bg-background p-3.5 transition-shadow hover:shadow-sm"
+    >
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-soft font-semibold text-brand text-sm">
+        {initials(c.displayName)}
+      </span>
+      <div className="min-w-0 flex-1 basis-48">
+        <p className="flex items-center gap-2 truncate font-medium">
+          {c.displayName}
+          {c.doNotCall && <StatusPill tone="danger">{t.contacts.doNotCall}</StatusPill>}
+        </p>
+        <p className="mt-0.5 flex flex-wrap gap-x-3 text-muted-foreground text-xs">
+          {phone && (
+            <span className="flex items-center gap-1">
+              <PhoneIcon className="size-3" />
+              {formatPhone(phone)}
+            </span>
+          )}
+          {email && (
+            <span className="flex items-center gap-1">
+              <MailIcon className="size-3" />
+              {email}
+            </span>
+          )}
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {c.tags.map((tag) => (
+          <span
+            key={tag}
+            className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs"
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+      <ChevronRightIcon className="size-4 text-muted-foreground" />
+    </Link>
   );
 }
 
@@ -118,70 +233,51 @@ export function ContactsPage() {
     <>
       <PageHeader
         title={t.contacts.title}
-        actions={<Button onClick={() => setImporting(true)}>{t.contacts.import}</Button>}
+        subtitle={t.contacts.subtitle}
+        actions={
+          <Button size="lg" onClick={() => setImporting(true)}>
+            <UploadIcon />
+            {t.contacts.import}
+          </Button>
+        }
       />
-      <div className="mb-4 max-w-md">
-        <Input
-          label={t.contacts.searchLabel}
+      <InputGroup className="mb-4 h-12 max-w-lg rounded-full bg-muted/70">
+        <InputGroupAddon>
+          <SearchIcon />
+        </InputGroupAddon>
+        <InputGroupInput
           type="search"
+          aria-label={t.contacts.searchLabel}
           placeholder={t.contacts.searchPlaceholder}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-      </div>
+      </InputGroup>
       {list.error && <ErrorNote error={list.error} onRetry={() => list.refetch()} />}
-      <Card>
+      <Panel>
         {list.isLoading ? (
-          <Loading />
+          <RowsLoading />
         ) : items.length === 0 ? (
           <EmptyState
+            icon={UsersIcon}
             title={q ? t.contacts.noResults : t.contacts.empty}
             hint={q ? undefined : t.contacts.emptyHint}
+            action={
+              !q && (
+                <Button onClick={() => setImporting(true)}>
+                  <UploadIcon />
+                  {t.contacts.import}
+                </Button>
+              )
+            }
           />
         ) : (
-          <Table caption={t.contacts.title}>
-            <thead>
-              <tr>
-                <Th>{t.common.name}</Th>
-                <Th>{t.contacts.phone}</Th>
-                <Th>{t.contacts.email}</Th>
-                <Th>{t.contacts.tags}</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((c) => {
-                const phone = identity(c, "phone");
-                return (
-                  <tr key={c.id}>
-                    <Td>
-                      <Link
-                        to="/contactos/$contactId"
-                        params={{ contactId: c.id }}
-                        className="font-medium text-accent underline"
-                      >
-                        {c.displayName}
-                      </Link>{" "}
-                      {c.doNotCall && <Badge tone="danger">{t.contacts.doNotCall}</Badge>}
-                    </Td>
-                    <Td className="whitespace-nowrap">{phone ? formatPhone(phone) : ""}</Td>
-                    <Td>{identity(c, "email") ?? ""}</Td>
-                    <Td>
-                      <div className="flex flex-wrap gap-1">
-                        {c.tags.map((tag) => (
-                          <Badge key={tag}>{tag}</Badge>
-                        ))}
-                      </div>
-                    </Td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </Table>
+          items.map((c) => <ContactRow key={c.id} c={c} />)
         )}
         {list.hasNextPage && (
-          <div className="mt-4 text-center">
+          <div className="py-2 text-center">
             <Button
-              variant="secondary"
+              variant="outline"
               disabled={list.isFetchingNextPage}
               onClick={() => list.fetchNextPage()}
             >
@@ -189,7 +285,7 @@ export function ContactsPage() {
             </Button>
           </div>
         )}
-      </Card>
+      </Panel>
       <ImportDialog open={importing} onClose={() => setImporting(false)} />
     </>
   );
@@ -208,20 +304,25 @@ function SourceDialog({
     enabled: conversationId !== null,
   });
   return (
-    <Dialog open={conversationId !== null} onClose={onClose} title={t.contacts.sourceTitle}>
-      {q.isLoading ? (
-        <Loading />
-      ) : q.error ? (
-        <ErrorNote error={q.error} />
-      ) : (
-        <EventsTable events={q.data?.items ?? []} showActor={false} />
-      )}
+    <Dialog open={conversationId !== null} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{t.contacts.sourceTitle}</DialogTitle>
+        </DialogHeader>
+        {q.isLoading ? (
+          <RowsLoading rows={3} />
+        ) : q.error ? (
+          <ErrorNote error={q.error} />
+        ) : (
+          <ConversationView events={q.data?.items ?? []} />
+        )}
+      </DialogContent>
     </Dialog>
   );
 }
 
 export function ContactDetailPage() {
-  const { contactId } = useParams({ from: "/app/contactos/$contactId" });
+  const { contactId } = useParams({ from: "/app/contacts/$contactId" });
   const [source, setSource] = useState<string | null>(null);
   const profile = useQuery({
     queryKey: ["contact", contactId],
@@ -232,11 +333,12 @@ export function ContactDetailPage() {
     queryFn: () => api.events.list({ contactId, limit: 50 }),
   });
 
-  if (profile.isLoading) return <Loading />;
+  if (profile.isLoading) return <PageLoading />;
   if (profile.error || !profile.data)
     return <ErrorNote error={profile.error} onRetry={() => profile.refetch()} />;
   const { contact, obligations, facts, recentSummaries } = profile.data;
   const phone = identity(contact, "phone");
+  const email = identity(contact, "email");
   // Defensive: if the API ignores the contactId filter, keep only this contact's events.
   const events = (timeline.data?.items ?? []).filter(
     (e) => e.contactId === null || e.contactId === contactId,
@@ -244,99 +346,102 @@ export function ContactDetailPage() {
 
   return (
     <>
-      <Link to="/contactos" className="mb-2 inline-block text-sm text-accent underline">
-        {t.common.back}
-      </Link>
       <PageHeader
-        title={contact.displayName}
-        subtitle={[phone ? formatPhone(phone) : null, identity(contact, "email")]
-          .filter(Boolean)
-          .join(" · ")}
+        back="/contacts"
+        eyebrow={`${t.contacts.title} / ${contact.displayName}`}
+        title={
+          <span className="flex items-center gap-4">
+            <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-brand-soft font-semibold text-brand text-xl">
+              {initials(contact.displayName)}
+            </span>
+            {contact.displayName}
+          </span>
+        }
+        subtitle={[phone ? formatPhone(phone) : null, email].filter(Boolean).join(" · ")}
         actions={
-          contact.doNotCall ? <Badge tone="danger">{t.contacts.doNotCall}</Badge> : undefined
+          contact.doNotCall ? (
+            <StatusPill tone="danger">{t.contacts.doNotCall}</StatusPill>
+          ) : undefined
         }
       />
-      <div className="space-y-4">
-        <Card title={t.contacts.obligations}>
-          {obligations.length === 0 ? (
-            <p className="text-sm text-muted">{t.contacts.noObligations}</p>
-          ) : (
-            <Table caption={t.contacts.obligations}>
-              <thead>
-                <tr>
-                  <Th>{t.contacts.kind}</Th>
-                  <Th>{t.contacts.stage}</Th>
-                  <Th>{t.contacts.amount}</Th>
-                  <Th>{t.contacts.dueAt}</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {obligations.map((o) => (
-                  <tr key={o.id}>
-                    <Td>{t.contacts.kinds[o.kind] ?? o.kind}</Td>
-                    <Td>
-                      <Badge>{o.stage}</Badge>
-                    </Td>
-                    <Td className="whitespace-nowrap">
-                      {o.amount === null ? "" : formatArs(o.amount, o.currency)}
-                    </Td>
-                    <Td className="whitespace-nowrap">{o.dueAt ? formatDate(o.dueAt) : ""}</Td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          )}
-        </Card>
-
-        <Card title={t.contacts.facts}>
+      <div className="grid gap-6 lg:grid-cols-5">
+        <div className="flex flex-col gap-6 lg:col-span-3">
+          <Panel title={t.contacts.obligations}>
+            {obligations.length === 0 ? (
+              <PanelRow className="text-muted-foreground text-sm">
+                {t.contacts.noObligations}
+              </PanelRow>
+            ) : (
+              obligations.map((o) => (
+                <PanelRow key={o.id} className="flex flex-wrap items-center gap-3 py-3">
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-medium text-sm">
+                      {t.contacts.kinds[o.kind] ?? o.kind}
+                    </span>
+                    <span className="block text-muted-foreground text-xs">
+                      {o.dueAt ? `${t.contacts.dueAt} ${formatDate(o.dueAt)}` : ""}
+                    </span>
+                  </span>
+                  {o.amount !== null && (
+                    <span className="font-semibold tabular-nums">
+                      {formatArs(o.amount, o.currency)}
+                    </span>
+                  )}
+                  <StatusPill>{o.stage}</StatusPill>
+                </PanelRow>
+              ))
+            )}
+          </Panel>
+          <Panel title={t.contacts.timeline}>
+            {timeline.isLoading ? (
+              <RowsLoading rows={3} />
+            ) : events.length === 0 ? (
+              <PanelRow className="text-muted-foreground text-sm">{t.contacts.noTimeline}</PanelRow>
+            ) : (
+              <EventList events={events} />
+            )}
+          </Panel>
+        </div>
+        <Panel className="lg:col-span-2 lg:self-start" title={t.contacts.facts}>
           {facts.length === 0 ? (
-            <p className="text-sm text-muted">{t.contacts.noFacts}</p>
+            <PanelRow className="text-muted-foreground text-sm">{t.contacts.noFacts}</PanelRow>
           ) : (
-            <ul className="divide-y divide-line">
-              {facts.map((f) => (
-                <li
-                  key={f.id}
-                  className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
-                >
+            facts.map((f) => (
+              <PanelRow key={f.id} className="py-3">
+                <p className="flex items-start gap-2 text-sm">
+                  <BrainIcon className="mt-0.5 size-4 shrink-0 text-brand" />
                   <span>
                     <span className="font-medium">{f.key}:</span> {f.value}
                   </span>
-                  <span className="flex items-center gap-2 text-xs text-muted">
-                    {t.contacts.confidence(Math.round(f.confidence * 100))}
-                    <span>{formatDate(f.createdAt)}</span>
-                    <Button
-                      variant="ghost"
-                      className="min-h-8 px-2 text-xs underline"
-                      onClick={() => setSource(f.sourceConversationId)}
-                    >
-                      {t.contacts.source}: {t.contacts.viewSource}
-                    </Button>
-                  </span>
-                </li>
-              ))}
-            </ul>
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-muted-foreground text-xs">
+                  <span>{t.contacts.confidence(Math.round(f.confidence * 100))}</span>
+                  <span>·</span>
+                  <span>{formatDate(f.createdAt)}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="ml-auto h-7 px-2 text-xs"
+                    onClick={() => setSource(f.sourceConversationId)}
+                  >
+                    <MessagesSquareIcon />
+                    {t.contacts.viewSource}
+                  </Button>
+                </div>
+              </PanelRow>
+            ))
           )}
           {recentSummaries.length > 0 && (
-            <div className="mt-4">
-              <h3 className="mb-1 text-sm font-medium">{t.contacts.summaries}</h3>
-              <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
+            <PanelRow>
+              <h3 className="mb-2 font-medium text-sm">{t.contacts.summaries}</h3>
+              <ul className="list-disc space-y-1 pl-5 text-muted-foreground text-sm">
                 {recentSummaries.map((s) => (
                   <li key={s}>{s}</li>
                 ))}
               </ul>
-            </div>
+            </PanelRow>
           )}
-        </Card>
-
-        <Card title={t.contacts.timeline}>
-          {timeline.isLoading ? (
-            <Loading />
-          ) : events.length === 0 ? (
-            <p className="text-sm text-muted">{t.contacts.noTimeline}</p>
-          ) : (
-            <EventsTable events={events} />
-          )}
-        </Card>
+        </Panel>
       </div>
       <SourceDialog conversationId={source} onClose={() => setSource(null)} />
     </>

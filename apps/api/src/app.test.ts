@@ -176,6 +176,40 @@ describe("bots", () => {
     expect(ok.body.evalRun.passed).toBe(true);
     const afterOk = await owner.client.get(`/api/bots/${bot.body.id}`);
     expect(afterOk.body.bot.publishedVersionId).toBe(versionId);
+
+    const list = await owner.client.get("/api/bots");
+    expect(list.body.items[0].current).toMatchObject({ version: 1, status: "published" });
+  });
+
+  it("describes a pack and a bot's guardrails", async () => {
+    const owner = await signUpOwner(app);
+    const packs = await owner.client.get("/api/packs");
+    const first = packs.body[0];
+    expect(first.policyCount).toBeGreaterThan(0);
+    const pack = await owner.client.get(`/api/packs/${first.id}`);
+    expect(pack.body.policies.length).toBe(first.policyCount);
+    expect(pack.body.scenarios.length).toBe(first.scenarioCount);
+    expect((await owner.client.get("/api/packs/nope")).status).toBe(404);
+
+    const bot = await owner.client.post("/api/bots", { name: "Guardias", packId: first.id });
+    const rules = await owner.client.get(`/api/bots/${bot.body.id}/policies`);
+    expect(rules.status).toBe(200);
+    expect(rules.body.items).toHaveLength(first.policyCount);
+    expect(rules.body.items[0].source).toBe("pack");
+  });
+});
+
+describe("integrations", () => {
+  it("reports which connectors are configured without exposing values", async () => {
+    const owner = await signUpOwner(app);
+    const res = await owner.client.get("/api/integrations");
+    expect(res.status).toBe(200);
+    const byId = Object.fromEntries(
+      res.body.items.map((i: { id: string; status: string }) => [i.id, i]),
+    );
+    expect(byId.livekit.status).toBe("connected");
+    expect(byId.openai.status).toBe("not_configured");
+    expect(JSON.stringify(res.body)).not.toContain("devsecret");
   });
 });
 

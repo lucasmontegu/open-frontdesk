@@ -1,9 +1,12 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { ShieldCheckIcon } from "lucide-react";
 import { useState } from "react";
-import { EventsTable } from "../components/EventsTable";
-import { Button, Card, EmptyState, ErrorNote, Loading, PageHeader } from "../components/ui";
-import { t } from "../i18n";
-import { api } from "../lib/api";
+import { EmptyState, ErrorNote, PageHeader, Panel, RowsLoading } from "@/components/common";
+import { EventList } from "@/components/events";
+import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { t } from "@/i18n";
+import { api } from "@/lib/api";
 
 export function ActivityPage() {
   const [onlyRefused, setOnlyRefused] = useState(false);
@@ -27,30 +30,42 @@ export function ActivityPage() {
         title={t.activity.title}
         subtitle={t.activity.subtitle}
         actions={
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={onlyRefused}
-              onChange={(e) => setOnlyRefused(e.target.checked)}
-              className="size-4 accent-[var(--accent)]"
-            />
-            {t.activity.onlyRefused}
-          </label>
+          <ToggleGroup
+            type="single"
+            value={onlyRefused ? "refused" : "all"}
+            onValueChange={(v) => v && setOnlyRefused(v === "refused")}
+            className="rounded-full bg-muted p-1"
+          >
+            {(
+              [
+                ["all", t.activity.all],
+                ["refused", t.activity.onlyRefused],
+              ] as const
+            ).map(([v, label]) => (
+              <ToggleGroupItem
+                key={v}
+                value={v}
+                className="h-9 rounded-full! px-4 text-muted-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
+              >
+                {label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
         }
       />
       {q.error && <ErrorNote error={q.error} onRetry={() => q.refetch()} />}
-      <Card>
+      <Panel>
         {q.isLoading ? (
-          <Loading />
+          <RowsLoading rows={6} />
         ) : events.length === 0 ? (
-          <EmptyState title={t.activity.empty} />
+          <EmptyState icon={ShieldCheckIcon} title={t.activity.empty} />
         ) : (
-          <EventsTable events={events} />
+          <EventList events={events} />
         )}
         {q.hasNextPage && (
-          <div className="mt-4 text-center">
+          <div className="py-2 text-center">
             <Button
-              variant="secondary"
+              variant="outline"
               disabled={q.isFetchingNextPage}
               onClick={() => q.fetchNextPage()}
             >
@@ -58,7 +73,7 @@ export function ActivityPage() {
             </Button>
           </div>
         )}
-      </Card>
+      </Panel>
     </>
   );
 }

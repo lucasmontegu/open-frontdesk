@@ -25,6 +25,12 @@ export function eventSummary(e: Pick<EventDto, "type" | "payload">): string {
     case "guard.output_blocked":
     case "transfer.requested":
       return s("reason");
+    case "mission.planned":
+    case "mission.approved":
+    case "mission.completed": {
+      const r = p.report as Record<string, number> | undefined;
+      return r ? `${r.total ?? 0} total · ${r.succeeded ?? 0} ok · ${r.failed ?? 0} ✕` : "";
+    }
     default:
       return Object.keys(p).length ? JSON.stringify(p) : "";
   }

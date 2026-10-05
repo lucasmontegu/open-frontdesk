@@ -21,7 +21,7 @@ jobs:
       # The same Postgres image (pgvector + pg_textsearch) and Redis that docker compose runs.
       - run: docker compose up -d --wait postgres redis
       - run: pnpm install --frozen-lockfile
-      - run: pnpm biome ci .
+      - run: pnpm lint
       - run: pnpm turbo run build typecheck test
 
   docker:

@@ -10,7 +10,7 @@ export default function Quickstart() {
       <ol>
         <li>
           Cloná el repositorio y levantá todo:
-          <Code>{`git clone https://github.com/open-frontdesk/open-frontdesk
+          <Code>{`git clone https://github.com/lucasmontegu/open-frontdesk
 cd open-frontdesk
 docker compose up -d --build`}</Code>
         </li>

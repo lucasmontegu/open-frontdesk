@@ -10,9 +10,11 @@
     "dev": "tsx watch src/main.ts",
     "start": "node dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "download-files": "node dist/main.js download-files"
   },
   "dependencies": {
+    "@ofd/channels": "workspace:*",
     "@ofd/core": "workspace:*",
     "@ofd/db": "workspace:*",
     "@ofd/gateway": "workspace:*",

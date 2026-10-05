@@ -35,6 +35,7 @@ export interface ImportResult {
 }
 
 export interface ImportDeps {
+  orgId: string;
   contacts: ContactRepository;
   obligations: ObligationRepository;
 }
@@ -68,7 +69,8 @@ export function parseDate(raw: string): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-export async function importContactsCsv(csvText: string, mapping: ImportMapping, deps: ImportDeps, orgId: string): Promise<ImportResult> {
+export async function importContactsCsv(csvText: string, mapping: ImportMapping, deps: ImportDeps): Promise<ImportResult> {
+  const { orgId } = deps;
   const result: ImportResult = { created: 0, updated: 0, skipped: 0, errors: [] };
   let records: Record<string, string>[];
   try {

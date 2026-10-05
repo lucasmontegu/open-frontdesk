@@ -34,6 +34,14 @@ function pickRole(raw: string | undefined): Role | null {
 /** Resolves the session and the member's role in the active organization into an Actor. */
 export const authenticate = (container: Container): MiddlewareHandler<AppEnv> => async (c, next) => {
   const headers = c.req.raw.headers;
+  const bearer = headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
+  if (bearer) {
+    // Organization API keys act with the admin role in the organization that owns them.
+    const result = await container.auth.api.verifyApiKey({ body: { key: bearer } });
+    if (!result.valid || !result.key) throw new HttpError(401, "unauthorized", "Invalid API key");
+    c.set("actor", { kind: "user", id: `apikey:${result.key.id}`, orgId: result.key.referenceId as never, role: "admin" });
+    return next();
+  }
   const session = await container.auth.api.getSession({ headers });
   if (!session) throw new HttpError(401, "unauthorized", "Authentication required");
   const orgId = session.session.activeOrganizationId;

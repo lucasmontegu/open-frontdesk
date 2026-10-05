@@ -70,7 +70,7 @@ Mastra stores its own memory tables (threads, messages, working memory) in the s
 
 ## HTTP API
 
-All routes are under `/api`, JSON, authenticated by the better-auth session cookie, and scoped to the session's active organization.
+All routes are under `/api` and use JSON. People authenticate with the better-auth session cookie and act in the session's active organization. Machine clients (the MCP server, integrations) send an organization API key as `Authorization: Bearer ofd_...` and act as admin of the organization that owns the key; keys are created at `POST /api/auth/api-key/create`.
 
 | Method | Path | Purpose |
 | --- | --- | --- |

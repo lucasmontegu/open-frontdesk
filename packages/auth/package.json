@@ -7,12 +7,13 @@
   "description": "better-auth setup: organizations, roles and access control.",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./src/index.ts",
       "default": "./dist/index.js"
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -20,6 +21,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@better-auth/api-key": "1.7.7",
     "@ofd/core": "workspace:*",
     "better-auth": "1.7.7",
     "pg": "8.23.1",

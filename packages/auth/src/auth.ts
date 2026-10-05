@@ -1,4 +1,5 @@
 import { betterAuth, type BetterAuthOptions } from "better-auth";
+import { apiKey } from "@better-auth/api-key";
 import { organization } from "better-auth/plugins";
 import { Pool } from "pg";
 import { ac, roles } from "./access.js";
@@ -18,7 +19,11 @@ export function authOptions(config: AuthConfig, pool = new Pool({ connectionStri
     basePath: "/api/auth",
     trustedOrigins: config.trustedOrigins ?? [],
     emailAndPassword: { enabled: true },
-    plugins: [organization({ ac, roles, creatorRole: "owner" })],
+    plugins: [
+      organization({ ac, roles, creatorRole: "owner" }),
+      // Organization-owned keys for machine clients (the MCP server, integrations).
+      apiKey({ references: "organization", defaultPrefix: "ofd_" }),
+    ],
   } satisfies BetterAuthOptions;
 }
 

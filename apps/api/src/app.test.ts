@@ -55,6 +55,16 @@ describe("contacts", () => {
     expect(detail.body.contact.displayName).toBe("Ana Pérez");
   });
 
+  it("accepts an organization API key as a Bearer token", async () => {
+    const owner = await signUpOwner(app);
+    const key = await owner.client.post("/api/auth/api-key/create", { organizationId: owner.orgId, name: "mcp" });
+    expect(key.status).toBe(200);
+    const res = await app.request("/api/contacts", { headers: { authorization: `Bearer ${key.body.key}` } });
+    expect(res.status).toBe(200);
+    const bad = await app.request("/api/contacts", { headers: { authorization: "Bearer ofd_not-a-key" } });
+    expect(bad.status).toBe(401);
+  });
+
   it("validates the body", async () => {
     const owner = await signUpOwner(app);
     const res = await owner.client.post("/api/contacts", { displayName: "" });

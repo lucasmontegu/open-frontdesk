@@ -3,3 +3,7 @@ export * from "./guards.js";
 export * from "./instructions.js";
 export * from "./gateway-tools.js";
 export * from "./memory.js";
+export * from "./types.js";
+export * from "./calendar.js";
+export * from "./builtin-tools.js";
+export * from "./mission.js";

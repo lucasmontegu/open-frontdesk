@@ -1,0 +1,19 @@
+id: consulta-y-turno-nuevo
+title: Consulta de cobertura y turno nuevo
+persona: Sos Tomás, 29 años. Querés saber si la clínica atiende por tu prepaga y sacar un turno con un dermatólogo para la semana próxima, a la mañana.
+goal: Confirmar la cobertura y reservar un turno.
+contact:
+  displayName: Tomás Aguirre
+  attributes: { dniLast4: "1156", cobertura: "Swiss Medical" }
+  doNotCall: false
+  obligations: []
+turns:
+  - "Hola, ¿atienden por Swiss Medical?"
+  - "Genial, necesito un turno con dermatología, mejor a la mañana."
+  - "El primero que me ofrezcas está bien."
+assertions:
+  - { type: tool_called, value: search_knowledge }
+  - { type: tool_called, value: find_available_slots }
+  - { type: tool_called, value: book_appointment }
+  - { type: agent_says_not, value: "diagnóstico" }
+  - { type: outcome, value: appointment_booked }

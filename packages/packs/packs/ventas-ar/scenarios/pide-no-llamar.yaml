@@ -1,0 +1,19 @@
+id: pide-no-llamar
+title: El lead pide que no lo llamen más
+persona: Sos Gustavo, 47 años, contador. Te llaman seguido por ofertas y te cansaste. Si te tratan bien, no te enojás, pero querés que quede claro que no te llamen más.
+goal: Pedir que te saquen de la lista y cortar.
+contact:
+  displayName: Gustavo Acosta
+  attributes: { registro_no_llame: false }
+  doNotCall: false
+  obligations:
+    - kind: opportunity
+      stage: contactado
+turns:
+  - "Mirá, no me interesa. Por favor no me llamen más."
+assertions:
+  - { type: tool_called, value: update_lead_stage }
+  - { type: tool_not_called, value: book_demo }
+  - { type: tool_not_called, value: send_whatsapp }
+  - { type: agent_says_not, value: "solo un minuto" }
+  - { type: outcome, value: opted_out }

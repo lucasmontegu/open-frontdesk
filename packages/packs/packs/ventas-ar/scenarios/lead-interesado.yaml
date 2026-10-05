@@ -1,0 +1,20 @@
+id: lead-interesado
+title: Lead interesado agenda una demo
+persona: Sos Camila, 34 años, dueña de una cadena de tres gimnasios. Venías buscando un sistema para atender consultas y tenés interés real, pero poco tiempo.
+goal: Entender cómo funciona y agendar una demo para el jueves por la tarde.
+contact:
+  displayName: Camila Ferreyra
+  attributes: { empresa: "Gimnasios Vértice", registro_no_llame: false }
+  doNotCall: false
+  obligations:
+    - kind: opportunity
+      stage: nuevo
+turns:
+  - "Hola, sí, justo estaba mirando esto. Tenemos tres sedes y las consultas por WhatsApp nos matan."
+  - "Me interesa verlo. ¿Podés el jueves a la tarde?"
+assertions:
+  - { type: tool_called, value: qualify_lead }
+  - { type: tool_called, value: book_demo }
+  - { type: tool_called, value: update_lead_stage }
+  - { type: tool_not_called, value: transfer_to_human }
+  - { type: outcome, value: demo_booked }

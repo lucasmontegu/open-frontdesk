@@ -1,0 +1,31 @@
+{
+  "name": "@ofd/evals",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "Scenario runner, simulated customers, event-log assertions and the publish gate.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@ofd/core": "workspace:*",
+    "@ofd/gateway": "workspace:*",
+    "@ofd/packs": "workspace:*",
+    "@ofd/agent": "workspace:*",
+    "yaml": "2.9.1",
+    "zod": "4.6.5",
+    "@mastra/core": "1.74.0"
+  }
+}

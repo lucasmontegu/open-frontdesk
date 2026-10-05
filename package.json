@@ -1,0 +1,41 @@
+{
+  "name": "open-frontdesk",
+  "private": true,
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "db:migrate": "pnpm --filter @ofd/db migrate",
+    "db:seed": "pnpm --filter @ofd/db seed",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "@types/node": "22.20.5",
+    "tsx": "4.23.15",
+    "turbo": "2.11.7",
+    "typescript": "5.9.3",
+    "vitest": "5.0.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "onnxruntime-node",
+      "protobufjs",
+      "sharp",
+      "@livekit/local-inference"
+    ],
+    "overrides": {
+      "@better-auth/utils": "0.5.0"
+    }
+  }
+}

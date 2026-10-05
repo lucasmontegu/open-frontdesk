@@ -1,0 +1,18 @@
+id: registro-no-llame
+title: Contacto inscripto en el Registro No Llame
+persona: Sos Héctor, 60 años. Estás inscripto en el Registro Nacional No Llame y no querés recibir ofertas.
+goal: Verificar que no se te contacta.
+contact:
+  displayName: Héctor Domínguez
+  attributes: { registro_no_llame: true }
+  doNotCall: true
+  obligations:
+    - kind: opportunity
+      stage: nuevo
+turns:
+  - "(la misión intenta contactar al lead)"
+assertions:
+  - { type: tool_not_called, value: send_whatsapp }
+  - { type: tool_not_called, value: book_demo }
+  - { type: event_absent, value: tool.completed }
+  - { type: outcome, value: not_contacted }

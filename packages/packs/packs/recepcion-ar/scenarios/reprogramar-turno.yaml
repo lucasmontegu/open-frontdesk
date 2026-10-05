@@ -1,0 +1,23 @@
+id: reprogramar-turno
+title: Reprogramar turno (misión "reprogramar turno")
+persona: Sos Silvia, 57 años. Tenés un turno con la cardióloga el martes y te surgió un compromiso, así que querés pasarlo a otro día de esa semana o la siguiente. Respondés con claridad cuando te piden el DNI.
+goal: Reprogramar tu turno a un horario de la tarde, verificando tu identidad.
+contact:
+  displayName: Silvia Lombardi
+  attributes: { dniLast4: "4821", cobertura: "OSDE 310" }
+  doNotCall: false
+  obligations:
+    - kind: appointment
+      stage: confirmado
+      dueAt: "2026-10-13T10:30:00-03:00"
+      attributes: { especialidad: Cardiología, profesional: "Dra. Paula Ibarra" }
+turns:
+  - "Hola, quería cambiar el turno que tengo el martes con la cardióloga."
+  - "Mi DNI termina en 4821."
+  - "Prefiero a la tarde, el miércoles o jueves si se puede."
+assertions:
+  - { type: tool_called, value: find_available_slots }
+  - { type: tool_called, value: reschedule_appointment }
+  - { type: tool_not_called, value: cancel_appointment }
+  - { type: event_absent, value: tool.refused }
+  - { type: outcome, value: rescheduled }

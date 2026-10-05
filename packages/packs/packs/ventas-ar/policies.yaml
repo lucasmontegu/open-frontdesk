@@ -1,0 +1,16 @@
+- id: registro-no-llame
+  effect: deny
+  description: No se contacta a personas inscriptas en el Registro Nacional No Llame ni a quienes pidieron no ser contactados.
+  when: tool.effect == 'contact' && contact != null && (contact.doNotCall || (has(contact.attributes.registro_no_llame) && contact.attributes.registro_no_llame == true))
+- id: horario-de-contacto
+  effect: deny
+  description: Solo se contacta de lunes a sábados de 9 a 20 h (hora de Argentina).
+  when: tool.effect == 'contact' && (now.weekday == 0 || now.hour < 9 || now.hour >= 20)
+- id: permitir-gestion
+  effect: allow
+  description: Herramientas de consulta, registro y derivación.
+  when: tool.effect in ['read', 'write', 'transfer']
+- id: permitir-contacto-con-autonomia
+  effect: allow
+  description: Las herramientas que contactan al cliente requieren autonomía 2 o más.
+  when: tool.effect == 'contact' && bot != null && bot.autonomy >= 2

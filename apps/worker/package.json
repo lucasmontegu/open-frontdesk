@@ -1,0 +1,28 @@
+{
+  "name": "@ofd/worker",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "Background jobs: missions, fact extraction, goals, CRM sync.",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@ofd/core": "workspace:*",
+    "@ofd/db": "workspace:*",
+    "@ofd/gateway": "workspace:*",
+    "@ofd/agent": "workspace:*",
+    "@ofd/channels": "workspace:*",
+    "@ofd/infra": "workspace:*",
+    "@ofd/crm": "workspace:*",
+    "pg-boss": "12.36.0",
+    "zod": "4.6.5",
+    "pino": "10.4.0",
+    "@ofd/packs": "workspace:*"
+  }
+}

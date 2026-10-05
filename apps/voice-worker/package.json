@@ -1,0 +1,33 @@
+{
+  "name": "@ofd/voice-worker",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "LiveKit voice worker running the Mastra agent in a cascade (STT, agent, TTS).",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "download-files": "node dist/main.js download-files"
+  },
+  "dependencies": {
+    "@ofd/channels": "workspace:*",
+    "@ofd/core": "workspace:*",
+    "@ofd/db": "workspace:*",
+    "@ofd/gateway": "workspace:*",
+    "@ofd/agent": "workspace:*",
+    "@ofd/infra": "workspace:*",
+    "@mastra/core": "1.74.0",
+    "@mastra/livekit": "0.4.2",
+    "@livekit/agents": "1.9.1",
+    "@livekit/agents-plugin-silero": "1.9.1",
+    "@livekit/agents-plugin-livekit": "1.9.1",
+    "@livekit/agents-plugin-deepgram": "1.9.1",
+    "@livekit/agents-plugin-cartesia": "1.9.1",
+    "zod": "4.6.5",
+    "@ofd/packs": "workspace:*"
+  }
+}

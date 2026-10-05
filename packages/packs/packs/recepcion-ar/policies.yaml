@@ -1,0 +1,12 @@
+- id: verificar-identidad
+  effect: deny
+  description: Para reprogramar o cancelar un turno hay que verificar los últimos 4 dígitos del DNI contra el perfil.
+  when: tool.name in ['reschedule_appointment', 'cancel_appointment'] && (contact == null || !has(tool.input.dniLast4) || !has(contact.attributes.dniLast4) || string(tool.input.dniLast4) != string(contact.attributes.dniLast4))
+- id: no-contactar
+  effect: deny
+  description: Nunca se contacta a personas marcadas como "no contactar".
+  when: tool.effect == 'contact' && contact != null && contact.doNotCall
+- id: permitir-gestion
+  effect: allow
+  description: Herramientas de consulta, turnos y derivación.
+  when: tool.effect in ['read', 'write', 'transfer']

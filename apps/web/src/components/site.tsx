@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-export const GITHUB_URL = "https://github.com/open-frontdesk/open-frontdesk";
+export const GITHUB_URL = "https://github.com/lucasmontegu/open-frontdesk";
 
 export function Header() {
   return (

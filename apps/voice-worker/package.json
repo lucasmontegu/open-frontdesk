@@ -25,6 +25,7 @@
     "@livekit/agents-plugin-livekit": "1.9.1",
     "@livekit/agents-plugin-deepgram": "1.9.1",
     "@livekit/agents-plugin-cartesia": "1.9.1",
-    "zod": "4.6.5"
+    "zod": "4.6.5",
+    "@ofd/packs": "workspace:*"
   }
 }

@@ -345,6 +345,9 @@ importers:
 
   packages/evals:
     dependencies:
+      '@mastra/core':
+        specifier: 1.74.0
+        version: 1.74.0(express@5.2.1)(zod-to-json-schema@3.25.2(zod@4.6.5))(zod@4.6.5)
       '@ofd/agent':
         specifier: workspace:*
         version: link:../agent

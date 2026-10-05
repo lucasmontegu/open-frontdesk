@@ -12,6 +12,7 @@ defaultBot:
   channels: [voice, whatsapp]
   tools:
     - qualify_lead
+    - find_available_slots
     - book_demo
     - send_whatsapp
     - update_lead_stage

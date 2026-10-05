@@ -14,6 +14,7 @@ import type {
 } from "@ofd/core";
 import type { Db } from "./client.js";
 import { PgBotRepository } from "./repos/bots.js";
+import { EvalRunRepository } from "./repos/eval-runs.js";
 import { PgContactRepository } from "./repos/contacts.js";
 import { PgContactFactRepository, PgObligationRepository, PgPortfolioRepository, PgProfileLoader } from "./repos/crm.js";
 import {
@@ -36,6 +37,7 @@ export interface Repositories {
   policies: PolicyRepository;
   missions: MissionRepository;
   knowledge: KnowledgeSearch;
+  evalRuns: EvalRunRepository;
 }
 
 export function createRepositories(db: Db, opts: { embed?: Embed; clock?: Clock } = {}): Repositories {
@@ -54,5 +56,6 @@ export function createRepositories(db: Db, opts: { embed?: Embed; clock?: Clock 
     policies: new PgPolicyRepository(db),
     missions: new PgMissionRepository(db),
     knowledge: new PgKnowledgeSearch(db, opts.embed),
+    evalRuns: new EvalRunRepository(db),
   };
 }

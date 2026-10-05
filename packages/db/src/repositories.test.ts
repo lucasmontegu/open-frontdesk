@@ -216,3 +216,15 @@ describe("profile, policies, missions", () => {
     expect(await repos.missions.get(orgB, m.id)).toBeNull();
   });
 });
+
+describe("eval runs", () => {
+  it("stores score, summary and failures and lists by version", async () => {
+    const bot = await repos.bots.create(orgA, "Evals");
+    const v = await repos.bots.createVersion(orgA, bot.id, botConfig);
+    const run1 = await repos.evalRuns.create(orgA, { botVersionId: v.id, passed: false, score: 0.5, summary: "1/2", failures: [{ scenario: "s", reason: "r" }] });
+    const run2 = await repos.evalRuns.create(orgA, { botVersionId: v.id, passed: true, score: 1, summary: "2/2", failures: [] });
+    expect(await repos.evalRuns.get(orgA, run1.id)).toMatchObject({ passed: false, score: 0.5, failures: [{ scenario: "s", reason: "r" }] });
+    expect(await repos.evalRuns.get(orgB, run1.id)).toBeNull();
+    expect((await repos.evalRuns.listByVersion(orgA, v.id)).map((r) => r.id).sort()).toEqual([run1.id, run2.id].sort());
+  });
+});

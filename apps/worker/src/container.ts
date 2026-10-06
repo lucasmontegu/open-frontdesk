@@ -179,6 +179,7 @@ export async function createContainer(
       gateway,
       telephony,
       compose,
+      contactWindow: config.contactWindow,
       log,
     },
     extractFacts: {

@@ -197,6 +197,48 @@ describe("mission.contact", () => {
     expect(t.status()).toBe("failed");
   });
 
+  describe("contact window", () => {
+    // t.now is Mon 2026-10-05 09:00 in Buenos Aires.
+    const window = (start: string, end: string) => ({
+      timezone: "America/Argentina/Buenos_Aires",
+      days: [1, 2, 3, 4, 5],
+      start,
+      end,
+    });
+
+    it("contacts right away inside the window", async () => {
+      const t = setup();
+      await missionContact({ ...t.deps, contactWindow: window("09:00", "20:00") }, t.job());
+      expect(t.gateway.calls).toHaveLength(1);
+    });
+
+    it("defers the first attempt to the next opening", async () => {
+      const t = setup();
+      await missionContact({ ...t.deps, contactWindow: window("10:00", "20:00") }, t.job());
+      expect(t.gateway.calls).toHaveLength(0);
+      expect(t.conversations.started).toHaveLength(0);
+      const deferred = t.jobs.of("mission.contact");
+      expect(deferred).toHaveLength(1);
+      expect(deferred[0]?.data).toMatchObject({ contactId: "1", channel: "whatsapp" });
+      expect(deferred[0]?.opts?.startAfterSeconds).toBe(60 * 60);
+      expect(deferred[0]?.opts?.singletonKey).toBe("m1:1:first:first:at:2026-10-05T13:00:00.000Z");
+      expect(t.status()).toBe("pending");
+    });
+
+    it("defers the voice fallback instead of calling at night", async () => {
+      const t = setup();
+      await missionContact(
+        { ...t.deps, contactWindow: window("10:00", "20:00") },
+        t.job({ attempt: "check", stage: "first", since: t.now.toISOString() }),
+      );
+      expect(t.telephony.dialed).toHaveLength(0);
+      expect(t.jobs.of("mission.contact")[0]?.data).toMatchObject({
+        attempt: "check",
+        stage: "first",
+      });
+    });
+  });
+
   it("skips cancelled missions", async () => {
     const t = setup();
     t.missions.items.set("m1", { ...(t.missions.items.get("m1") as never), status: "cancelled" });

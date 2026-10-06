@@ -1,4 +1,5 @@
 export * from "./domain/bot.js";
+export * from "./domain/contact-window.js";
 export * from "./domain/crm.js";
 export * from "./domain/events.js";
 export * from "./domain/identity.js";

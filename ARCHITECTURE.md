@@ -64,7 +64,7 @@ Mastra stores its own memory tables (threads, messages, working memory) in the s
 
 **Inbound call.** Twilio or a SIP trunk reaches LiveKit SIP, LiveKit dispatches `voice-worker`, which identifies the contact by phone, preloads the profile (`ProfileLoader`), and runs the bot's published version through the cascade. Each tool call goes through the gateway. When the call ends, `conversation.extract_facts` is queued.
 
-**Mission.** `POST /api/missions` stores the instruction and queues `mission.plan`. The worker builds a plan (targets, held slots, channel strategy, estimate). With autonomy 3 the mission waits in `awaiting_approval`; `POST /api/missions/:id/approve` queues `mission.execute`, which fans out one `mission.contact` job per target. Slots are held in Redis (`HoldStore`) so no two contacts are offered the same one.
+**Mission.** `POST /api/missions` stores the instruction and queues `mission.plan`. The worker builds a plan (targets, held slots, channel strategy, estimate). With autonomy 3 the mission waits in `awaiting_approval`; `POST /api/missions/:id/approve` queues `mission.execute`, which fans out one `mission.contact` job per target. Slots are held in Redis (`HoldStore`) so no two contacts are offered the same one. Attempts outside the contact window (`OFD_CONTACT_DAYS`, `OFD_CONTACT_HOURS`) are deferred to its next opening.
 
 **Publishing a bot version.** `POST /api/bots/:id/versions/:versionId/publish` runs the version's eval suite. A failing suite rejects the version; only a passing one becomes the published version.
 
@@ -111,5 +111,7 @@ Errors are `{ "error": { "code": string, "message": string } }`, mapped from `Do
 All configuration is environment variables, validated at startup by `@ofd/infra`'s `loadConfig()`. See `.env.example`.
 
 ## Open source and cloud
+
+[docs/infrastructure.md](docs/infrastructure.md) has the plan for the managed cloud and for campaigns of 100k contacts.
 
 The core is Apache-2.0. Cloud-only features (billing, managed multi-tenancy, SSO/SCIM, large-scale simulation, managed numbers) will live in `ee/` under a commercial license. Everything a single company needs to run a safe bot stays in the core.

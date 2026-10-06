@@ -35,15 +35,30 @@ Without `OPENAI_API_KEY` the app still runs, but publishing a bot only runs the 
 
 ## Develop
 
-Node 22 and pnpm 10.
+Development needs no build step: every app runs from source in watch mode, and workspace packages resolve to their TypeScript source (the `@ofd/source` export condition). Saving a file in `apps/` or `packages/` restarts the API or worker in a second, and the dashboard updates in place.
+
+**On your machine** (Node 22, pnpm 10). Fastest reloads.
 
 ```bash
+cp .env.example .env        # pnpm dev loads it into every app
 pnpm install
-docker compose up -d postgres redis livekit
-pnpm db:migrate && pnpm db:seed   # demo organization with contacts and bots
-pnpm dev                          # every app in watch mode
-pnpm build && pnpm test
+pnpm dev:infra              # Postgres, Redis and LiveKit in Docker
+pnpm dev                    # api :3000, worker, dashboard :5173, site :3002
+pnpm db:seed                # optional: demo organization with contacts and bots
+pnpm dev:voice              # optional: the voice worker (needs Deepgram and Cartesia keys)
 ```
+
+Open the dashboard at http://localhost:5173. It proxies `/api` to the API, and the API applies migrations when it starts.
+
+**Everything in Docker.** Nothing to install but Docker Compose 2.22 or newer.
+
+```bash
+pnpm dev:docker             # or: docker compose -f docker-compose.yml -f docker-compose.dev.yml watch
+```
+
+Compose syncs your edits into the containers, where the same watchers reload them. A change to `pnpm-lock.yaml` rebuilds the images by itself. To run the voice worker too: `docker compose --profile voice -f docker-compose.yml -f docker-compose.dev.yml watch`.
+
+Before pushing, run what CI runs: `pnpm lint && pnpm build && pnpm typecheck && pnpm test`.
 
 ## Layout
 

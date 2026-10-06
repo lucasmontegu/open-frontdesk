@@ -7,6 +7,7 @@
   "description": "Channel adapters: WhatsApp (Kapso) and telephony (LiveKit SIP).",
   "exports": {
     ".": {
+      "@ofd/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }

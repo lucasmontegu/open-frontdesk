@@ -7,6 +7,7 @@
   "description": "MCP server so a customer's own AI can configure OpenFrontDesk.",
   "exports": {
     ".": {
+      "@ofd/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }

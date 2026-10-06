@@ -7,6 +7,7 @@
   "description": "Mastra agent factory, tools wired through the gateway, memory and mission workflow.",
   "exports": {
     ".": {
+      "@ofd/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }

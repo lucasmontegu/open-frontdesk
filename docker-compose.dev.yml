@@ -1,0 +1,59 @@
+# Development on top of docker-compose.yml: every app runs from source in watch mode, nothing is built.
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml watch    (or: pnpm dev:docker)
+# Edits under apps/ and packages/ are synced into the containers and reload in a second or two.
+# A change to pnpm-lock.yaml rebuilds the images, so a new dependency needs no manual step.
+
+x-dev: &dev
+  build: { context: ., target: dev }
+  develop:
+    watch:
+      - action: sync
+        path: ./apps
+        target: /app/apps
+        ignore: [node_modules/, dist/, .next/, .turbo/]
+      - action: sync
+        path: ./packages
+        target: /app/packages
+        ignore: [node_modules/, dist/, .turbo/]
+      - action: rebuild
+        path: ./pnpm-lock.yaml
+
+x-dev-env: &dev-env
+  NODE_ENV: development
+  # The browser opens the Vite dev server, which proxies /api to the api container.
+  PUBLIC_APP_URL: http://localhost:5173
+
+services:
+  migrate:
+    build: { context: ., target: dev }
+    working_dir: /app/apps/api
+    command: ["pnpm", "exec", "tsx", "--conditions=@ofd/source", "src/migrate.ts"]
+
+  api:
+    <<: *dev
+    command: ["pnpm", "--filter", "@ofd/api", "dev"]
+    environment: *dev-env
+
+  worker:
+    <<: *dev
+    command: ["pnpm", "--filter", "@ofd/worker", "dev"]
+    environment: *dev-env
+
+  voice-worker:
+    <<: *dev
+    command: ["pnpm", "--filter", "@ofd/voice-worker", "dev"]
+    environment: *dev-env
+
+  dashboard:
+    <<: *dev
+    command: ["pnpm", "--filter", "@ofd/dashboard", "dev"]
+    environment:
+      OFD_DEV_HOST: 0.0.0.0
+      OFD_API_URL: http://api:3000
+    ports: ["5173:5173"]
+    depends_on:
+      api: { condition: service_started }
+
+  web:
+    <<: *dev
+    command: ["pnpm", "--filter", "@ofd/web", "dev"]

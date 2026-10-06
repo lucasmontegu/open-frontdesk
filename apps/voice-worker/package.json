@@ -7,7 +7,7 @@
   "description": "LiveKit voice worker running the Mastra agent in a cascade (STT, agent, TTS).",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "dev": "tsx watch src/main.ts",
+    "dev": "tsx watch --conditions=@ofd/source --env-file-if-exists=../../.env src/main.ts dev",
     "start": "node dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests",

@@ -3,11 +3,18 @@
 #   worker        background jobs
 #   voice-worker  LiveKit voice agent
 #   web           public site (port 3002)
+#   dev           source + dependencies, no build: every app runs in watch mode (docker-compose.dev.yml)
 
 FROM node:22-slim AS base
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH CI=true
 RUN corepack enable && corepack prepare pnpm@10.28.0 --activate
 WORKDIR /app
+
+# Development: dependencies only. docker compose watch syncs the source in and tsx/Vite/Next reload it.
+FROM base AS dev
+ENV NODE_ENV=development
+COPY . .
+RUN pnpm install --frozen-lockfile
 
 FROM base AS build
 COPY . .

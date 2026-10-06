@@ -97,6 +97,50 @@ export interface PackDto {
   name: string;
   version: string;
   description?: string;
+  role?: string;
+  goal?: string;
+  autonomy?: number;
+  channels?: string[];
+  tools?: string[];
+  policyCount?: number;
+  scenarioCount?: number;
+}
+
+export interface PolicyRuleDto {
+  id: string;
+  effect: "allow" | "deny";
+  description: string;
+  when: string;
+  source?: "org" | "pack";
+}
+
+export interface PackDetailDto extends PackDto {
+  policies: PolicyRuleDto[];
+  scenarios: { id: string; title: string; goal: string }[];
+}
+
+/** A bot as the list returns it: plus a summary of the version it runs or its newest draft. */
+export type BotListItemDto = BotDto & {
+  current?: {
+    version: number;
+    status: BotVersionDto["status"];
+    role: string;
+    goal: string;
+    autonomy: number;
+    channels: string[];
+    packId: string | null;
+  } | null;
+  versionCount?: number;
+};
+
+export type MissionDetailDto = MissionDto & { targetNames?: Record<string, string> };
+
+export interface IntegrationDto {
+  id: string;
+  name: string;
+  category: "models" | "voice" | "messaging" | "crm" | "calendar";
+  status: "connected" | "not_configured" | "coming_soon";
+  env: string[];
 }
 
 /** Assumed shape of the eval outcome returned (or embedded in the error) on publish. */
@@ -143,21 +187,28 @@ export const api = {
   },
   packs: {
     list: async () => toPage<PackDto>(await request("/packs")),
+    get: (id: string) => request<PackDetailDto>(`/packs/${id}`),
   },
   bots: {
-    list: async () => toPage<BotDto>(await request("/bots")),
+    list: async () => toPage<BotListItemDto>(await request("/bots")),
     get: async (id: string) => normalizeBotDetail(await request<unknown>(`/bots/${id}`)),
     create: (input: { name: string; packId?: string; config?: Partial<BotConfig> }) =>
       request<BotDto>("/bots", { method: "POST", body: input }),
+    policies: async (id: string) => toPage<PolicyRuleDto>(await request(`/bots/${id}/policies`)),
+    createVersion: (botId: string, config: BotConfig) =>
+      request<BotVersionDto>(`/bots/${botId}/versions`, { method: "POST", body: { config } }),
     publish: (botId: string, versionId: string) =>
       request<PublishResponse>(`/bots/${botId}/versions/${versionId}/publish`, { method: "POST" }),
   },
   missions: {
     list: async () => toPage<MissionDto>(await request("/missions")),
-    get: (id: string) => request<MissionDto>(`/missions/${id}`),
+    get: (id: string) => request<MissionDetailDto>(`/missions/${id}`),
     create: (input: { instruction: string; botId: string }) =>
       request<MissionDto>("/missions", { method: "POST", body: input }),
     approve: (id: string) => request<MissionDto>(`/missions/${id}/approve`, { method: "POST" }),
+  },
+  integrations: {
+    list: async () => toPage<IntegrationDto>(await request("/integrations")),
   },
   events: {
     list: async (q: { cursor?: string; limit?: number; type?: string; contactId?: string }) =>

@@ -23,7 +23,7 @@ docker compose up -d --build
 | http://localhost:3000 | Dashboard and API (`/api`) |
 | http://localhost:3002 | Public site and docs |
 
-`docker compose up` starts Postgres 17 (with pgvector and pg_textsearch), Redis, LiveKit, runs migrations, then starts the API, the jobs worker and the site. Create your account at http://localhost:3000/registro.
+`docker compose up` starts Postgres 17 (with pgvector and pg_textsearch), Redis, LiveKit, runs migrations, then starts the API, the jobs worker and the site. Create your account at http://localhost:3000/sign-up.
 
 Voice is opt in, because it needs Deepgram and Cartesia keys (and a SIP trunk for real phone calls):
 

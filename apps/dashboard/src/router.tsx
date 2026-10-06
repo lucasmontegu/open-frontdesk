@@ -5,11 +5,12 @@ import {
   Outlet,
   redirect,
 } from "@tanstack/react-router";
-import { Layout } from "./components/Layout";
+import { AppShell } from "./components/app-shell";
 import { authClient } from "./lib/auth";
 import { ActivityPage } from "./pages/Activity";
 import { SignInPage, SignUpPage } from "./pages/Auth";
 import { BotDetailPage, BotsPage } from "./pages/Bots";
+import { ConnectorsPage } from "./pages/Connectors";
 import { ContactDetailPage, ContactsPage } from "./pages/Contacts";
 import { HomePage } from "./pages/Home";
 import { MissionDetailPage, MissionsPage } from "./pages/Missions";
@@ -20,12 +21,12 @@ const rootRoute = createRootRoute({ component: Outlet });
 // Public routes
 const signInRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/ingresar",
+  path: "/sign-in",
   component: SignInPage,
 });
 const signUpRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/registro",
+  path: "/sign-up",
   component: SignUpPage,
 });
 
@@ -33,10 +34,10 @@ const signUpRoute = createRoute({
 const appRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "app",
-  component: Layout,
+  component: AppShell,
   beforeLoad: async () => {
     const { data } = await authClient.getSession();
-    if (!data) throw redirect({ to: "/ingresar" });
+    if (!data) throw redirect({ to: "/sign-in" });
     const active = (data.session as { activeOrganizationId?: string | null }).activeOrganizationId;
     if (!active) {
       const orgs = await authClient.organization.list();
@@ -50,15 +51,16 @@ const child = <P extends string>(path: P, component: () => React.JSX.Element) =>
   createRoute({ getParentRoute: () => appRoute, path, component });
 
 const homeRoute = child("/", HomePage);
-const contactsRoute = child("/contactos", ContactsPage);
-const contactRoute = child("/contactos/$contactId", ContactDetailPage);
-const portfoliosRoute = child("/carteras", PortfoliosPage);
-const portfolioRoute = child("/carteras/$portfolioId", PortfolioDetailPage);
+const contactsRoute = child("/contacts", ContactsPage);
+const contactRoute = child("/contacts/$contactId", ContactDetailPage);
+const portfoliosRoute = child("/portfolios", PortfoliosPage);
+const portfolioRoute = child("/portfolios/$portfolioId", PortfolioDetailPage);
 const botsRoute = child("/bots", BotsPage);
 const botRoute = child("/bots/$botId", BotDetailPage);
-const missionsRoute = child("/misiones", MissionsPage);
-const missionRoute = child("/misiones/$missionId", MissionDetailPage);
-const activityRoute = child("/actividad", ActivityPage);
+const missionsRoute = child("/missions", MissionsPage);
+const missionRoute = child("/missions/$missionId", MissionDetailPage);
+const activityRoute = child("/activity", ActivityPage);
+const connectorsRoute = child("/connectors", ConnectorsPage);
 
 const routeTree = rootRoute.addChildren([
   signInRoute,
@@ -74,6 +76,7 @@ const routeTree = rootRoute.addChildren([
     missionsRoute,
     missionRoute,
     activityRoute,
+    connectorsRoute,
   ]),
 ]);
 

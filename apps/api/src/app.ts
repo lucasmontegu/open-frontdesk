@@ -8,6 +8,7 @@ import { botRoutes } from "./routes/bots.js";
 import { contactRoutes } from "./routes/contacts.js";
 import { conversationRoutes, eventRoutes } from "./routes/events.js";
 import { healthRoutes } from "./routes/health.js";
+import { integrationRoutes } from "./routes/integrations.js";
 import { knowledgeRoutes } from "./routes/knowledge.js";
 import { missionRoutes } from "./routes/missions.js";
 import { packRoutes } from "./routes/packs.js";
@@ -40,6 +41,7 @@ export function createApp(container: Container, opts: AppOptions = {}) {
   api.route("/conversations", conversationRoutes(container));
   api.route("/events", eventRoutes(container));
   api.route("/knowledge", knowledgeRoutes(container));
+  api.route("/integrations", integrationRoutes(container));
   const mastra = createMastraHandler(container);
   api.all("/mastra/*", (c) => mastra(c.req.raw));
   app.route("/api", api);

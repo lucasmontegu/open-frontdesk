@@ -258,3 +258,52 @@ describe("mastra", () => {
     expect(res.body).toEqual({});
   });
 });
+
+describe("settings", () => {
+  it("lets an organization set and reset its contact window", async () => {
+    const owner = await signUpOwner(app);
+    const initial = await owner.client.get("/api/settings/contact-window");
+    expect(initial.status).toBe(200);
+    expect(initial.body).toEqual({
+      window: container.config.contactWindow,
+      source: "default",
+    });
+
+    const mexico = {
+      timezone: "America/Mexico_City",
+      rules: [
+        { days: [1, 2, 3, 4, 5], start: "07:00", end: "22:00" },
+        { days: [6], start: "09:00", end: "14:00" },
+      ],
+    };
+    const saved = await owner.client.request("PUT", "/api/settings/contact-window", mexico);
+    expect(saved.status).toBe(200);
+    expect(saved.body).toEqual({ window: mexico, source: "organization" });
+    expect((await owner.client.get("/api/settings/contact-window")).body.source).toBe(
+      "organization",
+    );
+
+    const bad = await owner.client.request("PUT", "/api/settings/contact-window", {
+      timezone: "Mars/Olympus",
+      rules: [{ days: [1], start: "20:00", end: "09:00" }],
+    });
+    expect(bad.status).toBe(400);
+
+    const reset = await owner.client.request("DELETE", "/api/settings/contact-window");
+    expect(reset.body.source).toBe("default");
+  });
+
+  it("forbids a viewer from changing the contact window", async () => {
+    const owner = await signUpOwner(app);
+    const viewer = await signUp(app, "viewer");
+    await container.auth.api.addMember({
+      body: { userId: viewer.userId, role: "viewer", organizationId: owner.orgId },
+    });
+    await viewer.client.post("/api/auth/organization/set-active", { organizationId: owner.orgId });
+    const res = await viewer.client.request("PUT", "/api/settings/contact-window", {
+      timezone: "America/Argentina/Buenos_Aires",
+      rules: [{ days: [1], start: "09:00", end: "18:00" }],
+    });
+    expect(res.status).toBe(403);
+  });
+});

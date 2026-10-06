@@ -56,8 +56,8 @@ export interface MissionContactDeps {
   gateway: ToolGateway;
   telephony: TelephonyProvider;
   compose: MessageComposer;
-  /** When set, outbound attempts outside it are deferred to its next opening. */
-  contactWindow?: ContactWindow;
+  /** The org's contact window (its own or the deployment default). Attempts outside it wait for its next opening. */
+  contactWindowFor?: (orgId: string) => Promise<ContactWindow>;
   clock?: Clock;
   log?: Log;
 }
@@ -161,9 +161,9 @@ async function deferOutsideWindow(
   clock: Clock,
   log: Log,
 ): Promise<boolean> {
-  if (!deps.contactWindow) return false;
+  if (!deps.contactWindowFor) return false;
   const now = clock.now();
-  const openAt = nextContactTime(deps.contactWindow, now);
+  const openAt = nextContactTime(await deps.contactWindowFor(job.orgId), now);
   if (openAt.getTime() <= now.getTime()) return false;
   const base = job.missionId
     ? contactSingletonKey(job.missionId, job.contactId)

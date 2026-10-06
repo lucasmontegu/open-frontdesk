@@ -179,7 +179,8 @@ export async function createContainer(
       gateway,
       telephony,
       compose,
-      contactWindow: config.contactWindow,
+      contactWindowFor: async (orgId: string) =>
+        (await repos.settings.getContactWindow(orgId)) ?? config.contactWindow,
       log,
     },
     extractFacts: {

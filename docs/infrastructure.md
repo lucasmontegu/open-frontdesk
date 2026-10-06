@@ -1,6 +1,6 @@
 # Cloud infrastructure and large campaigns
 
-Status: proposal (2026-10-06). Nothing here is provisioned yet. The goal is a managed cloud that runs the same images as `docker compose`, so self-hosting stays one command and the cloud is "the same thing, operated for you".
+Status: direction agreed with Lucas on 2026-10-06; nothing is provisioned yet. The goal is a managed cloud that runs the same images as `docker compose`, so self-hosting stays one command and the cloud is "the same thing, operated for you".
 
 ## The workload
 
@@ -29,44 +29,32 @@ The design that replaces it keeps durable state in Postgres and uses the queue o
 2. **A dispatcher instead of a fan-out.** A `mission.dispatch` job runs every few seconds per running mission. It computes free capacity (org and trunk concurrency, CPS and WhatsApp budgets), checks the contact window, claims that many due targets with `SELECT ... FOR UPDATE SKIP LOCKED`, sets a lease and enqueues `mission.contact` for each. Several workers can run it at once without double-dialing.
 3. **Concurrency leases in Redis.** A call takes a lease keyed by org and trunk with a TTL, and gives it back when the call ends (the voice worker already knows when: `finishCall`). A crashed call frees its slot when the TTL expires. Token buckets in Redis pace CPS and the WhatsApp budget.
 4. **Pause, resume, cancel are a status change.** The dispatcher stops claiming; calls in progress finish. Resume after a crash is free: expired leases go back to `pending` and the dispatcher picks them up.
-5. **The contact window is already enforced.** `mission.contact` defers any attempt outside `OFD_CONTACT_DAYS` / `OFD_CONTACT_HOURS` to the next opening. It moves to per-org and per-mission settings when those exist.
+5. **The contact window is already enforced.** Each organization sets its own (`PUT /api/settings/contact-window`, or the `set_contact_window` MCP tool), because the rules change by country and use case. Organizations that set none use `OFD_CONTACT_DAYS` / `OFD_CONTACT_HOURS`. `mission.contact` defers any attempt outside the window to its next opening.
 
 pg-boss stays the queue. Postgres-only keeps self-hosting simple, the state that matters lives in tables we own, and pg-boss handles millions of jobs a day. Inngest or Trigger.dev (named in the PRD) would add a service every self-hoster has to run, for features the dispatcher pattern does not need. We can revisit if missions grow into long multi-step workflows with human waits.
 
-## Where to run it: AWS for the core, Cloudflare at the edge
+## Where to run it
 
-**Recommendation: AWS runs everything stateful and everything voice; Cloudflare handles DNS, WAF, the static dashboard and site, and recording storage (R2).**
+Rule: the core is containers plus Postgres and Redis, so every piece below is replaceable, and a self-hoster runs the same images with `docker compose`. Managed services are chosen to scale the long-running work (campaigns, calls) without us operating media servers or databases early on.
 
-Why not Cloudflare for the core:
+| Piece | Now | Later | Notes |
+| --- | --- | --- | --- |
+| api, worker, voice-worker | Containers on EC2 or Render | ECS on AWS when we need autoscaling per service | Same images as compose. The worker scales on queue depth and dispatcher lag; the voice worker on active calls, draining before scale-in so calls are never cut |
+| Media and SIP | LiveKit Cloud | Self-hosted LiveKit if volume makes it cheaper | Removes the hardest piece to operate |
+| Redis | Upstash | Same, or Valkey next to the workers | Leases, holds, rate limits. Use the TLS URL (`rediss://`). Billed per command, so keep polling out of Redis |
+| Recordings and files | Cloudflare R2 | Same | S3-compatible: LiveKit egress and our code write to it, self-hosters point it at S3 or MinIO |
+| Postgres 17 + pgvector | Neon, or our own image on EC2 | Tiger Cloud | See the BM25 note below |
+| DNS, TLS, WAF, static dashboard and site | Cloudflare | Same | |
 
-- Voice workers are long-lived Node processes that hold WebRTC media, run native ONNX models (turn detection, noise filtering) and keep a call in memory for minutes. Workers cannot do that (no UDP, CPU-time limits, no native addons). Cloudflare Containers is promising but young; worth revisiting later.
-- There is no managed Postgres on Cloudflare. Hyperdrive only pools connections to a database hosted elsewhere, so the database lives in a cloud provider anyway, and the API and workers should sit next to it.
-- Durable Objects and Queues would make the cloud depend on primitives a self-hoster cannot run, which breaks the "same images everywhere" rule.
+Why not run the core on Cloudflare Workers: voice workers are long-lived Node processes that hold WebRTC media, run native ONNX models (turn detection, noise filtering) and keep a call in memory for minutes. Workers cannot do that (no UDP, CPU-time limits, no native addons). Durable Objects and Queues would also make the cloud depend on primitives a self-hoster cannot run.
 
-Why AWS:
+Region: for Argentina, the closest full AWS region is São Paulo (`sa-east-1`). Media latency is mostly LiveKit Cloud's job; the API, workers and database should sit in the same region as each other.
 
-- São Paulo (`sa-east-1`) is the closest full region to Argentina, and AWS has a Local Zone in Buenos Aires for latency-sensitive media (check which instance types it offers before relying on it). Both matter for voice, where every hop adds to response time.
-- Everything we run is a plain container plus Postgres and Redis, which map to managed services one to one, and the same layout ports to the US later.
-
-What Cloudflare adds on top: DNS, TLS and WAF in front of the API, Pages for the dashboard and public site, and R2 for call recordings (no egress fees, S3-compatible, so self-hosters can point the same code at MinIO or S3).
-
-### Target layout (AWS)
-
-| Piece | Service | Notes |
-| --- | --- | --- |
-| api, worker | ECS on Fargate | Same images as compose. Worker scales on pg-boss queue depth and dispatcher lag |
-| voice-worker | ECS on EC2 (or Fargate) | Scales on active calls; drains before scale-in so calls are never cut |
-| Media and SIP | LiveKit Cloud first, self-hosted LiveKit on EC2 later | LiveKit Cloud removes the hardest piece to operate. Self-host when volume makes it cheaper |
-| Postgres 17 + pgvector + pg_textsearch | See risk below | Point-in-time recovery, one read replica for reports |
-| Redis | ElastiCache (Valkey) | Leases, holds, rate limits. Losing it costs in-flight leases only |
-| Secrets | Secrets Manager | Per-org provider keys encrypted at rest |
-| Infra as code | OpenTofu | Kept in `ee/` or a separate repo; the core never imports AWS SDKs |
-
-**Risk to verify first:** `pg_textsearch` (BM25) comes from Timescale/Tiger Data and is probably not available on RDS or Aurora. Options: Tiger Cloud (managed Postgres on AWS, check region availability), self-managed Postgres on EC2 with the same image we use locally, or a BM25 fallback to Postgres full-text search on RDS. This decision blocks the database choice.
+**BM25 note.** Knowledge search uses `pg_textsearch` (a Timescale/Tiger Data extension), and migration `0001` creates a `bm25` index. Our Postgres image on EC2 and Tiger Cloud have it. Neon does not as far as we know (to verify), so on Neon that migration fails. To use Neon we would first need a fallback to Postgres's built-in full-text search when the extension is missing. pg-boss also needs a direct connection, not Neon's pooled one, and its polling keeps the compute awake.
 
 ## Next steps
 
-1. Decide the Postgres option above.
+1. Pick Neon (needs the BM25 fallback) or our image on EC2 (works today) for the first environment.
 2. Build `mission_targets` and the dispatcher (code only, testable locally with compose), with Redis leases and token buckets, No Llame scrubbing at plan time, and attempt caps.
 3. A load test against the local stack with fake telephony: 100k targets, 200 concurrent, kill workers mid-run, check nothing is called twice and the report adds up.
-4. OpenTofu module for a staging environment, with a budget alarm before anything is created.
+4. A staging environment (EC2 or Render, LiveKit Cloud, Upstash, R2) with a budget alarm before anything is created.

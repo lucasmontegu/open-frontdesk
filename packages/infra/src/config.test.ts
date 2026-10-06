@@ -22,15 +22,13 @@ describe("loadConfig", () => {
     expect(c.openaiApiKey).toBeUndefined();
     expect(c.contactWindow).toEqual({
       timezone: "America/Argentina/Buenos_Aires",
-      days: [1, 2, 3, 4, 5, 6],
-      start: "09:00",
-      end: "20:00",
+      rules: [{ days: [1, 2, 3, 4, 5, 6], start: "09:00", end: "20:00" }],
     });
   });
 
   it("reads the contact window", () => {
     const c = loadConfig({ ...valid, OFD_CONTACT_DAYS: "1,2,3", OFD_CONTACT_HOURS: "10:00-18:30" });
-    expect(c.contactWindow).toMatchObject({ days: [1, 2, 3], start: "10:00", end: "18:30" });
+    expect(c.contactWindow.rules).toEqual([{ days: [1, 2, 3], start: "10:00", end: "18:30" }]);
     expect(() => loadConfig({ ...valid, OFD_CONTACT_HOURS: "20:00-09:00" })).toThrow(ConfigError);
   });
 

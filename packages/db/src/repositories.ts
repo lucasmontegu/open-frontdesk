@@ -8,6 +8,7 @@ import type {
   KnowledgeSearch,
   MissionRepository,
   ObligationRepository,
+  OrgSettingsRepository,
   PolicyRepository,
   PortfolioRepository,
   ProfileLoader,
@@ -29,6 +30,7 @@ import {
   PgPolicyRepository,
 } from "./repos/interactions.js";
 import { type Embed, PgKnowledgeSearch } from "./repos/knowledge.js";
+import { PgOrgSettingsRepository } from "./repos/settings.js";
 
 export interface Repositories {
   contacts: ContactRepository;
@@ -43,6 +45,7 @@ export interface Repositories {
   missions: MissionRepository;
   knowledge: KnowledgeSearch;
   evalRuns: EvalRunRepository;
+  settings: OrgSettingsRepository;
 }
 
 export function createRepositories(
@@ -65,5 +68,6 @@ export function createRepositories(
     missions: new PgMissionRepository(db),
     knowledge: new PgKnowledgeSearch(db, opts.embed),
     evalRuns: new EvalRunRepository(db),
+    settings: new PgOrgSettingsRepository(db),
   };
 }

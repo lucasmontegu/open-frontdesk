@@ -1,21 +1,36 @@
 import { z } from "zod";
 
+function isTimeZone(tz: string): boolean {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const HHMM = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "expected HH:MM");
 
-/**
- * When outbound contact is allowed, in local time. Missions never start a call or a
- * WhatsApp conversation outside it; the attempt is deferred to the next opening.
- * The default is a placeholder: the legal hours per country and use case still need confirming.
- */
-export const ContactWindow = z
+/** One stretch of allowed hours, repeated on the given days of the week (0 = Sunday). */
+export const ContactHours = z
   .object({
-    timezone: z.string().min(1),
-    /** Days of the week, 0 = Sunday. */
     days: z.array(z.number().int().min(0).max(6)).min(1),
     start: HHMM,
     end: HHMM,
   })
-  .refine((w) => w.start < w.end, { message: "start must be before end" });
+  .refine((h) => h.start < h.end, { message: "start must be before end" });
+export type ContactHours = z.infer<typeof ContactHours>;
+
+/**
+ * When outbound contact is allowed, in local time. Each organization sets its own (rules differ by
+ * country and use case); the deployment's OFD_CONTACT_DAYS / OFD_CONTACT_HOURS is the fallback.
+ * Missions never start a call or a WhatsApp conversation outside it: the attempt waits for the next opening.
+ * Several rules allow different hours on different days, e.g. weekdays 09-20 and Saturday 09-13.
+ */
+export const ContactWindow = z.object({
+  timezone: z.string().refine(isTimeZone, { message: "unknown IANA timezone" }),
+  rules: z.array(ContactHours).min(1),
+});
 export type ContactWindow = z.infer<typeof ContactWindow>;
 
 const minutesOf = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
@@ -65,10 +80,26 @@ function instantAt(
 
 /** `at` itself when the window is open, otherwise the next moment it opens. */
 export function nextContactTime(window: ContactWindow, at: Date): Date {
-  const start = minutesOf(window.start);
-  const end = minutesOf(window.end);
   const now = localParts(at, window.timezone);
-  if (window.days.includes(now.weekday) && now.minutes >= start && now.minutes < end) return at;
+  let next: Date | null = null;
+  for (const rule of window.rules) {
+    const opens = nextOpening(rule, window.timezone, now, at);
+    if (opens.getTime() === at.getTime()) return at;
+    if (!next || opens < next) next = opens;
+  }
+  if (!next) throw new Error("a contact window needs at least one rule");
+  return next;
+}
+
+function nextOpening(
+  rule: ContactHours,
+  timezone: string,
+  now: ReturnType<typeof localParts>,
+  at: Date,
+): Date {
+  const start = minutesOf(rule.start);
+  const end = minutesOf(rule.end);
+  if (rule.days.includes(now.weekday) && now.minutes >= start && now.minutes < end) return at;
 
   for (let offset = 0; offset <= 7; offset++) {
     // Noon UTC of the local date plus `offset` days, so the date math never crosses midnight.
@@ -78,9 +109,9 @@ export function nextContactTime(window: ContactWindow, at: Date): Date {
       month: day.getUTCMonth() + 1,
       day: day.getUTCDate(),
     };
-    if (!window.days.includes(day.getUTCDay())) continue;
-    if (offset === 0 && now.minutes >= start) continue; // today's window already closed
-    return instantAt(date, start, window.timezone);
+    if (!rule.days.includes(day.getUTCDay())) continue;
+    if (offset === 0 && now.minutes >= start) continue; // today's opening already passed
+    return instantAt(date, start, timezone);
   }
-  throw new Error("unreachable: a window with at least one day opens within a week");
+  throw new Error("unreachable: a rule with at least one day opens within a week");
 }

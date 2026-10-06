@@ -199,22 +199,23 @@ describe("mission.contact", () => {
 
   describe("contact window", () => {
     // t.now is Mon 2026-10-05 09:00 in Buenos Aires.
-    const window = (start: string, end: string) => ({
-      timezone: "America/Argentina/Buenos_Aires",
-      days: [1, 2, 3, 4, 5],
-      start,
-      end,
-    });
+    const window = (start: string, end: string) => async (orgId: string) => {
+      expect(orgId).toBe(ORG);
+      return {
+        timezone: "America/Argentina/Buenos_Aires",
+        rules: [{ days: [1, 2, 3, 4, 5], start, end }],
+      };
+    };
 
     it("contacts right away inside the window", async () => {
       const t = setup();
-      await missionContact({ ...t.deps, contactWindow: window("09:00", "20:00") }, t.job());
+      await missionContact({ ...t.deps, contactWindowFor: window("09:00", "20:00") }, t.job());
       expect(t.gateway.calls).toHaveLength(1);
     });
 
     it("defers the first attempt to the next opening", async () => {
       const t = setup();
-      await missionContact({ ...t.deps, contactWindow: window("10:00", "20:00") }, t.job());
+      await missionContact({ ...t.deps, contactWindowFor: window("10:00", "20:00") }, t.job());
       expect(t.gateway.calls).toHaveLength(0);
       expect(t.conversations.started).toHaveLength(0);
       const deferred = t.jobs.of("mission.contact");
@@ -228,7 +229,7 @@ describe("mission.contact", () => {
     it("defers the voice fallback instead of calling at night", async () => {
       const t = setup();
       await missionContact(
-        { ...t.deps, contactWindow: window("10:00", "20:00") },
+        { ...t.deps, contactWindowFor: window("10:00", "20:00") },
         t.job({ attempt: "check", stage: "first", since: t.now.toISOString() }),
       );
       expect(t.telephony.dialed).toHaveLength(0);

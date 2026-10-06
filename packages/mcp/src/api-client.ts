@@ -30,7 +30,7 @@ export class ApiClient {
   }
 
   async request<T = unknown>(
-    method: "GET" | "POST",
+    method: "GET" | "POST" | "PUT" | "DELETE",
     path: string,
     opts: { query?: Record<string, string | number | undefined>; body?: unknown } = {},
   ): Promise<T> {

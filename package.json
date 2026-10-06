@@ -8,7 +8,10 @@
   },
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev --parallel",
+    "dev": "turbo run dev --parallel --filter=!@ofd/voice-worker",
+    "dev:infra": "docker compose up -d --wait postgres redis livekit",
+    "dev:voice": "pnpm --filter @ofd/voice-worker dev",
+    "dev:docker": "docker compose -f docker-compose.yml -f docker-compose.dev.yml watch",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "lint": "biome check .",

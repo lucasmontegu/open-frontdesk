@@ -371,3 +371,18 @@ describe("eval runs", () => {
     );
   });
 });
+
+describe("org settings", () => {
+  it("stores, isolates and clears the contact window", async () => {
+    const window = {
+      timezone: "America/Mexico_City",
+      rules: [{ days: [1, 2, 3, 4, 5], start: "07:00", end: "22:00" }],
+    };
+    expect(await repos.settings.getContactWindow(orgA)).toBeNull();
+    await repos.settings.setContactWindow(orgA, window);
+    expect(await repos.settings.getContactWindow(orgA)).toEqual(window);
+    expect(await repos.settings.getContactWindow(orgB)).toBeNull();
+    await repos.settings.setContactWindow(orgA, null);
+    expect(await repos.settings.getContactWindow(orgA)).toBeNull();
+  });
+});

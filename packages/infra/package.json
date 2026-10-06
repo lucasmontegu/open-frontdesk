@@ -7,6 +7,7 @@
   "description": "Runtime infrastructure: env config, logger, Redis holds, pg-boss job queue.",
   "exports": {
     ".": {
+      "@ofd/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }

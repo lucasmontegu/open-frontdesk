@@ -7,6 +7,7 @@
   "description": "Tool gateway: CEL policy evaluation (fail closed) and audit before every action.",
   "exports": {
     ".": {
+      "@ofd/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }

@@ -1,4 +1,5 @@
 import type { Bot, BotConfig, BotVersion, BotVersionStatus } from "../domain/bot.js";
+import type { ContactWindow } from "../domain/contact-window.js";
 import type {
   Contact,
   ContactFact,
@@ -129,6 +130,12 @@ export interface PolicyRepository {
   /** Org-level rules plus the rules of the bot's installed pack. */
   rulesFor(orgId: string, botId: string | null): Promise<PolicyRule[]>;
   setOrgRules(orgId: string, rules: PolicyRule[]): Promise<void>;
+}
+
+/** Per-organization settings. Null means "not set": callers fall back to the deployment default. */
+export interface OrgSettingsRepository {
+  getContactWindow(orgId: string): Promise<ContactWindow | null>;
+  setContactWindow(orgId: string, window: ContactWindow | null): Promise<void>;
 }
 
 export interface MissionRepository {

@@ -1,3 +1,4 @@
+import type { ContactWindow } from "@ofd/core";
 import { z } from "zod";
 
 const optionalString = z.string().min(1).optional();
@@ -20,6 +21,17 @@ export const ConfigSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
   OFD_TIMEZONE: z.string().min(1).default("America/Argentina/Buenos_Aires"),
+  /** Default contact days when an organization has not set its own window, 0 = Sunday. */
+  OFD_CONTACT_DAYS: z
+    .string()
+    .regex(/^[0-6](,[0-6])*$/, "expected comma-separated days, 0 = Sunday")
+    .default("1,2,3,4,5,6"),
+  /** Default contact hours, in OFD_TIMEZONE, for organizations without their own window. */
+  OFD_CONTACT_HOURS: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d-([01]\d|2[0-3]):[0-5]\d$/, "expected HH:MM-HH:MM")
+    .refine((v) => v.slice(0, 5) < v.slice(6), "start must be before end")
+    .default("09:00-20:00"),
 });
 
 export type RawConfig = z.infer<typeof ConfigSchema>;
@@ -38,6 +50,7 @@ export interface Config {
   port: number;
   logLevel: RawConfig["LOG_LEVEL"];
   timezone: string;
+  contactWindow: ContactWindow;
 }
 
 export class ConfigError extends Error {
@@ -79,5 +92,15 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     port: c.PORT,
     logLevel: c.LOG_LEVEL,
     timezone: c.OFD_TIMEZONE,
+    contactWindow: {
+      timezone: c.OFD_TIMEZONE,
+      rules: [
+        {
+          days: [...new Set(c.OFD_CONTACT_DAYS.split(",").map(Number))],
+          start: c.OFD_CONTACT_HOURS.slice(0, 5),
+          end: c.OFD_CONTACT_HOURS.slice(6),
+        },
+      ],
+    },
   };
 }

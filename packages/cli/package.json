@@ -7,6 +7,7 @@
   "description": "The ofd command line: init, migrate, pack install, eval run.",
   "exports": {
     ".": {
+      "@ofd/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }

@@ -152,5 +152,47 @@ export function createMcpServer(opts: McpServerOptions): McpServer {
     ({ missionId }) => run(() => api.request("GET", `/missions/${enc(missionId)}`)),
   );
 
+  server.registerTool(
+    "get_contact_window",
+    {
+      title: "Get contact window",
+      description:
+        "Reads when missions may call or message people: a timezone plus rules of days (0 = Sunday) and local hours. source is 'organization' when the organization set its own, 'default' when it uses the deployment default.",
+      annotations: { readOnlyHint: true },
+    },
+    () => run(() => api.request("GET", "/settings/contact-window")),
+  );
+
+  server.registerTool(
+    "set_contact_window",
+    {
+      title: "Set contact window",
+      description:
+        "Sets the hours in which missions may start calls or WhatsApp conversations. Attempts outside them wait for the next opening. Contact hours are often regulated (by country and by use case such as collections): confirm them with the person you work for. Pass reset=true to go back to the deployment default.",
+      inputSchema: {
+        timezone: z
+          .string()
+          .optional()
+          .describe("IANA timezone of the people contacted, e.g. America/Mexico_City"),
+        rules: z
+          .array(
+            z.object({
+              days: z.array(z.number().int().min(0).max(6)).describe("0 = Sunday ... 6 = Saturday"),
+              start: z.string().describe("HH:MM, local time"),
+              end: z.string().describe("HH:MM, local time, after start"),
+            }),
+          )
+          .optional(),
+        reset: z.boolean().optional(),
+      },
+    },
+    ({ timezone, rules, reset }) =>
+      run(() =>
+        reset
+          ? api.request("DELETE", "/settings/contact-window")
+          : api.request("PUT", "/settings/contact-window", { body: { timezone, rules } }),
+      ),
+  );
+
   return server;
 }

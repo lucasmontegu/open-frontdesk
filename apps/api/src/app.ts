@@ -13,6 +13,7 @@ import { knowledgeRoutes } from "./routes/knowledge.js";
 import { missionRoutes } from "./routes/missions.js";
 import { packRoutes } from "./routes/packs.js";
 import { portfolioRoutes } from "./routes/portfolios.js";
+import { settingsRoutes } from "./routes/settings.js";
 import { mountDashboard } from "./static.js";
 
 export interface AppOptions {
@@ -42,6 +43,7 @@ export function createApp(container: Container, opts: AppOptions = {}) {
   api.route("/events", eventRoutes(container));
   api.route("/knowledge", knowledgeRoutes(container));
   api.route("/integrations", integrationRoutes(container));
+  api.route("/settings", settingsRoutes(container));
   const mastra = createMastraHandler(container);
   api.all("/mastra/*", (c) => mastra(c.req.raw));
   app.route("/api", api);

@@ -55,11 +55,25 @@ describe("openfrontdesk mcp server", () => {
       "approve_mission",
       "create_bot_from_pack",
       "create_mission",
+      "get_contact_window",
       "get_mission",
       "import_contacts_csv",
       "list_contacts",
       "list_packs",
+      "set_contact_window",
     ]);
+  });
+
+  it("set_contact_window -> PUT, or DELETE with reset", async () => {
+    const { calls, call } = await rig();
+    const rules = [{ days: [1, 2, 3, 4, 5], start: "07:00", end: "22:00" }];
+    await call("set_contact_window", { timezone: "America/Mexico_City", rules });
+    await call("set_contact_window", { reset: true });
+    expect(calls.map((c) => [c.method, c.url.pathname])).toEqual([
+      ["PUT", "/api/settings/contact-window"],
+      ["DELETE", "/api/settings/contact-window"],
+    ]);
+    expect(calls[0]!.body).toEqual({ timezone: "America/Mexico_City", rules });
   });
 
   it("list_packs -> GET /api/packs with the bearer key", async () => {

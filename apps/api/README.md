@@ -67,6 +67,7 @@ Errors are `{ "error": { "code", "message", "details?" } }`: `unauthorized` 401,
 | GET | /api/conversations/:id/events | calls read |
 | GET | /api/events | calls read. Filters `type`, `contactId`, `limit`, `cursor` |
 | GET, POST | /api/knowledge | search (`q`) / ingest |
+| GET, PUT, DELETE | /api/settings/contact-window | policies read / update. `{window, source}`; `source` is `organization` or `default`. PUT takes `{timezone, rules: [{days, start, end}]}`, DELETE goes back to the default |
 | * | /api/mastra/* | Mastra server (initialized lazily on first request) |
 
 List endpoints return `{items, nextCursor}`.

@@ -7,6 +7,7 @@
   "description": "Scenario runner, simulated customers, event-log assertions and the publish gate.",
   "exports": {
     ".": {
+      "@ofd/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }

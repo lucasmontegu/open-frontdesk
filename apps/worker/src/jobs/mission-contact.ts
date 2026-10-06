@@ -4,11 +4,13 @@ import {
   type Clock,
   type Contact,
   type ContactRepository,
+  type ContactWindow,
   type ConversationRepository,
   type EventStore,
   type JobQueue,
   type MissionPlan,
   type MissionRepository,
+  nextContactTime,
   OrgId,
   type ProfileLoader,
   type TelephonyProvider,
@@ -54,6 +56,8 @@ export interface MissionContactDeps {
   gateway: ToolGateway;
   telephony: TelephonyProvider;
   compose: MessageComposer;
+  /** The org's contact window (its own or the deployment default). Attempts outside it wait for its next opening. */
+  contactWindowFor?: (orgId: string) => Promise<ContactWindow>;
   clock?: Clock;
   log?: Log;
 }
@@ -132,6 +136,7 @@ export async function missionContact(deps: MissionContactDeps, data: unknown): P
       strategy.first === "whatsapp" &&
       strategy.fallbackAfterMinutes !== null
     ) {
+      if (await deferOutsideWindow(deps, job, clock, log)) return;
       await attempt(deps, job, version, contact, "voice", strategy, clock, log);
       return;
     }
@@ -142,7 +147,36 @@ export async function missionContact(deps: MissionContactDeps, data: unknown): P
     log.warn({ contactId: contact.id }, "mission.contact: contact is do-not-call");
     return settle("failed");
   }
+  if (await deferOutsideWindow(deps, job, clock, log)) return;
   await attempt(deps, job, version, contact, job.channel, strategy, clock, log);
+}
+
+/**
+ * Re-enqueues the job for the next opening of the contact window when it is closed now.
+ * A deferred check re-reads replies when it runs, so a customer who answers overnight is not called.
+ */
+async function deferOutsideWindow(
+  deps: MissionContactDeps,
+  job: MissionContactJobData,
+  clock: Clock,
+  log: Log,
+): Promise<boolean> {
+  if (!deps.contactWindowFor) return false;
+  const now = clock.now();
+  const openAt = nextContactTime(await deps.contactWindowFor(job.orgId), now);
+  if (openAt.getTime() <= now.getTime()) return false;
+  const base = job.missionId
+    ? contactSingletonKey(job.missionId, job.contactId)
+    : `callback:${job.contactId}`;
+  await deps.jobs.enqueue("mission.contact", job, {
+    startAfterSeconds: Math.ceil((openAt.getTime() - now.getTime()) / 1000),
+    singletonKey: `${base}:${job.attempt}:${job.stage}:at:${openAt.toISOString()}`,
+  });
+  log.info(
+    { missionId: job.missionId, contactId: job.contactId, openAt: openAt.toISOString() },
+    "mission.contact deferred to the contact window",
+  );
+  return true;
 }
 
 /** One outbound attempt on a channel, then the follow-up check that decides the target's final status. */
